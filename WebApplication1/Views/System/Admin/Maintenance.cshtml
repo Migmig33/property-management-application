@@ -1,0 +1,358 @@
+﻿@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<!-- Toast Notification -->
+<div ng-show="toastShow" ng-cloak
+     style="animation: slideDown 0.5s ease-in-out"
+     class="fixed top-4 right-4 z-[100] flex items-center gap-3 bg-white border border-slate-200 shadow-sm rounded-2xl px-5 py-4 w-[400px] max-w-full transition-all duration-300">
+
+    <!-- Icon -->
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-gray-900 shrink-0">
+        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 8a.75.75 0 00-1.5 0v4a.75.75 0 001.5 0V8zM12 16a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+    </svg>
+
+    <!-- Dynamic Message -->
+    <span class="text-slate-800 font-medium text-[15px]">{{ toast.message }}</span>
+</div>
+<div class="p-6" ng-init="getAllMaintenance(); currentPage = 'Maintenance'">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-slate-900 text-2xl font-bold">Maintenance</h1>
+            <p class="text-slate-500 text-sm">{{ maintenanceRequests.length }} total requests</p>
+        </div>
+        <button ng-click="openAddModal()" class="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all">
+            + Add Request
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div class="rounded-xl border p-3 text-center bg-amber-50 text-amber-700 border-amber-100">
+            <p class="text-2xl font-bold">{{ countByStatus('Pending') }}</p>
+            <p class="text-xs">Pending</p>
+        </div>
+        <div class="rounded-xl border p-3 text-center bg-green-50 text-green-700 border-green-100">
+            <p class="text-2xl font-bold">{{ countByStatus('In Progress') }}</p>
+            <p class="text-xs">In Progress</p>
+        </div>
+        <div class="rounded-xl border p-3 text-center bg-emerald-50 text-emerald-700 border-emerald-100">
+            <p class="text-2xl font-bold">{{ countByStatus('Resolved') }}</p>
+            <p class="text-xs">Resolved</p>
+        </div>
+        <div class="rounded-xl border p-3 text-center bg-slate-50 text-slate-700 border-slate-100">
+            <p class="text-2xl font-bold">{{ maintenanceRequests.length }}</p>
+            <p class="text-xs">Total</p>
+        </div>
+    </div>
+
+    <!-- Status Filters -->
+    <div class="flex gap-2 mb-4 flex-wrap">
+        <button ng-click="setStatusFilter('All')" ng-class="maintenanceStatusFilter === 'All' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all">
+            All
+        </button>
+        <button ng-click="setStatusFilter('Pending')" ng-class="maintenanceStatusFilter === 'Pending' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all">
+            Pending
+        </button>
+        <button ng-click="setStatusFilter('In Progress')" ng-class="maintenanceStatusFilter === 'In Progress' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all">
+            In Progress
+        </button>
+        <button ng-click="setStatusFilter('Resolved')" ng-class="maintenanceStatusFilter === 'Resolved' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all">
+            Resolved
+        </button>
+    </div>
+
+    <!-- Search -->
+    <div class="relative mb-5">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input type="text" ng-model="maintenanceSearch" placeholder="Search requests..."
+               class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+    </div>
+
+    <!-- Request Cards -->
+    <div class="space-y-3">
+        <div ng-repeat="req in filteredMaintenance()"
+             class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+
+                    <!-- Title Row -->
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        <span class="text-sm font-medium text-slate-900">{{ req.category }}</span>
+                        <!-- Status Badge -->
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                              ng-class="{
+                                'bg-amber-50 text-amber-700': req.status === 'Pending',
+                                'bg-green-50 text-green-700': req.status === 'In Progress',
+                                'bg-emerald-50 text-emerald-700': req.status === 'Resolved'
+                              }">
+                            {{ req.status }}
+                        </span>
+                    </div>
+
+                    <!-- Description -->
+                    <p class="text-slate-500 text-sm mb-2">{{ req.description }}</p>
+
+                    <!-- Photo Button -->
+                    <button ng-if="req.photoUrl" ng-click=""
+                            class="mb-2 flex items-center gap-1.5 text-xs text-green-700 bg-green-50 border border-green-100 px-2.5 py-1.5 rounded-lg hover:bg-green-100 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
+                        View attached photo
+                    </button>
+
+                    <!-- Meta Row -->
+                    <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+                        <span>Unit: <span class="text-slate-600">{{ req.unitName }}</span></span>
+                        <span>Tenant: <span class="text-slate-600">{{ req.tenantName || '—' }}</span></span>
+                        <span>Reported: <span class="text-slate-600">{{ req.reportedDate }}</span></span>
+                        <span ng-if="req.resolvedDate">
+                            Resolved in: <span class="text-emerald-600">{{ req.resolvedDate }}</span>
+                        </span>
+                    </div>
+
+                    <!-- Scheduled Badge -->
+                    <div ng-if="req.scheduledDate"
+                         class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h5" /><path d="M17.5 17.5 16 16.3V14" /><circle cx="16" cy="16" r="6" /></svg>
+                        <span>
+                            Scheduled: <strong>{{ req.scheduledDate }}</strong>
+                            <span ng-if="req.scheduledTime"> at <strong>{{ req.scheduledTime }}</strong></span>
+                        </span>
+                    </div>
+
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col gap-1.5 flex-shrink-0">
+
+                    <!-- Pending → Schedule -->
+                    <button ng-if="req.status === 'Pending'" ng-click="opnSchedModal(req)"
+                            class="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700 transition-all font-medium shadow-sm whitespace-nowrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                        Schedule
+                    </button>
+
+                    <!-- In Progress → Reschedule + Resolve -->
+                    <button ng-if="req.status === 'In Progress'" ng-click="opnSchedModal(req)"
+                            class="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all whitespace-nowrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                        Reschedule
+                    </button>
+                    <button ng-if="req.status === 'In Progress'" ng-click="openResolveModal(req)"
+                            class="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all whitespace-nowrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>
+                        Resolve
+                    </button>
+
+                    <!-- Resolved → Done -->
+                    <span ng-if="req.status === 'Resolved'"
+                          class="text-xs px-3 py-2 rounded-xl bg-emerald-50 text-emerald-600 text-center">
+                        ✓ Done
+                    </span>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div ng-if="filteredMaintenance().length === 0"
+             class="text-center py-12 text-slate-400 text-sm">
+            No maintenance requests found
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Photo Preview Modal ── -->
+<div ng-show="previewPhoto" ng-cloak ng-click="" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+    <div ng-click="$event.stopPropagation()" class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-4">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-sm font-medium text-slate-800 flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-green-600"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
+                Attached Photo
+            </p>
+            <button ng-click="" class="text-slate-400 hover:text-slate-600 text-xs px-2 py-1 rounded-lg hover:bg-slate-100 transition-all">
+                Close
+            </button>
+        </div>
+        <img ng-src="{{ previewPhoto }}" alt="Maintenance photo"
+             class="w-full rounded-xl object-contain max-h-96" />
+    </div>
+</div>
+
+<!-- ── Schedule Modal ── -->
+<div ng-show="scheduleOpen" ng-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h2 class="text-slate-900 font-semibold text-base">{{ schedulingReq.status === 'Pending' ? 'Schedule' : 'Reschedule' }} Maintenance</h2>
+            <button ng-click="closeScheduleModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            </button>
+        </div>
+        <!-- Body -->
+        <div class="p-6 space-y-5">
+
+            <!-- Request Info -->
+            <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <p class="text-xs text-slate-400 mb-0.5">Scheduling for</p>
+                <p class="text-sm font-medium text-slate-800">{{ schedulingReq.category }} — {{ schedulingReq.unitName }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">{{ schedulingReq.description }}</p>
+            </div>
+
+            <!-- Date -->
+            <div>
+                <label class="block text-sm text-slate-700 font-medium mb-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 mr-1 text-green-600 inline-block align-text-bottom"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                    Maintenance Date *
+                </label>
+                <input type="date" ng-model="schedDate"
+                       class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            </div>
+
+            <!-- Time -->
+            <div>
+                <label class="block text-sm text-slate-700 font-medium mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 mr-1 text-green-600 inline-block align-text-bottom"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                    Preferred Time
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button ng-repeat="t in timeOptions" type="button"
+                            ng-click="$parent.schedTime = t"
+                            ng-class="$parent.schedTime === t ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-200 hover:border-green-300'"
+                            class="py-2 rounded-xl text-xs font-medium border transition-all focus:outline-none">
+                        {{ t }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Confirmation Preview -->
+            <div ng-if="schedDate" class="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center gap-2 text-sm text-green-800">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-600 flex-shrink-0"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h5" /><path d="M17.5 17.5 16 16.3V14" /><circle cx="16" cy="16" r="6" /></svg>
+                <span>Will be scheduled on <strong>{{ schedDate }}</strong> at <strong>{{ schedTime }}</strong></span>
+            </div>
+
+        </div>
+        <!-- Footer -->
+        <div class="flex gap-3 justify-end px-6 py-4 border-t border-slate-100">
+            <button ng-click="closeScheduleModal()" class="px-4 py-2 rounded-xl text-sm text-slate-600 hover:bg-slate-100 border border-slate-200 transition-all">Cancel</button>
+            <button ng-click="submitSchedule()" ng-disabled="isSubmittingSchedule" class="px-5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all">
+                {{ isSubmittingSchedule ? 'Saving...' : 'Confirm Schedule' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Add Request Modal ── -->
+<div ng-show="addOpen" ng-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h2 class="text-slate-900 font-semibold text-base">New Maintenance Request</h2>
+            <button ng-click="closeAddModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="overflow-y-auto flex-1 p-6 space-y-4">
+            <div>
+                <label class="block text-sm text-slate-700 font-medium mb-1">Unit *</label>
+                <select ng-model="unitId"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="">Select unit</option>
+                    <option ng-repeat="u in units" value="{{ u.Uid }}">{{ u.unitName }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-slate-700 font-medium mb-1">Tenant</label>
+                <select ng-model="Tid"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="">Select tenant</option>
+                    <option ng-repeat="t in tenants" value="{{ t.Tid }}">{{ t.name }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-slate-700 font-medium mb-1">Category</label>
+                <select ng-model="category"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="Plumbing">Plumbing</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Air Conditioning">Air Conditioning</option>
+                    <option value="Internet">Internet</option>
+                    <option value="Appliance">Appliance</option>
+                    <option value="Structural">Structural</option>
+                    <option value="Pest Control">Pest Control</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-slate-700 font-medium mb-1">Priority</label>
+                <select ng-model="priority"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-slate-700 font-medium mb-1">Description *</label>
+                <textarea ng-model="description" rows="3" placeholder="Describe the issue..."
+                          class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"></textarea>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex gap-3 justify-end px-6 py-4 border-t border-slate-100">
+            <button ng-click="closeAddModal()" class="px-4 py-2 rounded-xl text-sm text-slate-600 hover:bg-slate-100 border border-slate-200 transition-all">Cancel</button>
+            <button ng-click="submitAddRequest()" ng-disabled="isSubmitting" class="px-5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all">
+                {{ isSubmitting ? 'Submitting...' : 'Submit' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Resolve Confirmation Modal ── -->
+<div ng-show="resolveConfirmReq" ng-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
+
+        <!-- Icon -->
+        <div class="flex justify-center mb-4">
+            <div class="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7 text-emerald-600"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>
+            </div>
+        </div>
+
+        <p class="text-slate-700 text-sm text-center mb-3">
+            Are you sure you want to mark this request as <strong>Resolved</strong>?, this process cannot be undone
+        </p>
+
+        <!-- Request Info -->
+        <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-5">
+            <p class="text-xs text-slate-400 mb-0.5">Request</p>
+            <p class="text-sm font-medium text-slate-800">{{ resolveConfirmReq.category }} — {{ resolveConfirmReq.unitName }}</p>
+            <p class="text-xs text-slate-500 mt-0.5">{{ resolveConfirmReq.description }}</p>
+        </div>
+
+        <div class="flex gap-3">
+            <button ng-click="closeResolveModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm hover:bg-slate-50 transition-all">Cancel</button>
+            <button ng-click="markAsResolved(resolveConfirmReq.id)" ng-disabled="isResolving"
+                    class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium transition-all flex items-center justify-center gap-2">
+                <span ng-if="isResolving" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <svg ng-if="!isResolving" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>
+                {{ isResolving ? 'Resolving...' : 'Confirm Resolve' }}
+            </button>
+        </div>
+    </div>
+</div>

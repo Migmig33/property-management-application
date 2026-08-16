@@ -1,0 +1,122 @@
+﻿@{
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<!-- Toast Notification -->
+<div ng-show="toastShow" style="animation: slideDown 0.5s ease-in-out"
+     class="fixed top-4 right-4 z-[100] flex items-center gap-3 bg-white border shadow-sm rounded-2xl px-5 py-4 w-[400px] max-w-full transition-all duration-300"
+     ng-class="{'border-green-200': toast.type === 'success', 'border-red-200': toast.type === 'error'}">
+    <span class="font-medium text-[15px]" ng-class="{'text-green-700': toast.type === 'success', 'text-red-700': toast.type === 'error'}">
+        {{ toast.message }}
+    </span>
+</div>
+
+<!-- Main Background -->
+<div class="min-h-screen bg-slate-900 bg-gradient-to-br from-slate-900 via-slate-800 to-black flex items-center justify-center p-4 sm:p-8 relative overflow-hidden font-sans" ng-init="initLogin()">
+
+    <!-- Ambient Blur Effects -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-green-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-800/20 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <!-- Floating Split Card -->
+    <div class="relative z-10 w-full max-w-[1050px] min-h-[600px] bg-white rounded-[2rem] shadow-2xl flex flex-col lg:flex-row overflow-hidden border border-slate-700/50">
+
+        <!-- ================= LEFT PANEL: BRANDING ================= -->
+        <div class="w-full lg:w-[45%] p-10 lg:p-12 flex flex-col relative overflow-hidden bg-slate-900">
+
+            <!-- Background Image container (Removed flex and p-8) -->
+            <div class="absolute inset-0 z-0 pointer-events-none">
+
+                <!-- Changed to object-cover to stretch edge-to-edge -->
+                <img src="https://i.imgur.com/ETdDZv3.jpeg" alt="Background" class="w-full h-full object-cover opacity-70" />
+
+            </div>
+
+            <div class="absolute inset-0 bg-gradient-to-br from-[#2c3d33]/60 via-[#213027]/80 to-[#15201a]/95 z-0 pointer-events-none"></div>
+
+            <div class="flex-grow relative z-10"></div>
+
+            <div class="relative z-10">
+                <h1 class="text-4xl lg:text-5xl text-white font-extrabold mb-4 leading-tight tracking-tight drop-shadow-lg">
+                    GreenResidences
+                </h1>
+                <p class="text-slate-300 text-sm leading-relaxed mb-8 max-w-sm drop-shadow">
+                    Enter your credentials to access your centralized property management and tenant workspace.
+                </p>
+            </div>
+        </div>
+
+        <!-- ================= RIGHT PANEL: FORM ================= -->
+        <div class="w-full lg:w-[55%] bg-white p-8 lg:p-16 flex flex-col justify-center">
+            <div class="w-full max-w-[380px] mx-auto">
+
+                <!-- CREDENTIALS STEP -->
+                <div ng-show="step === 'credentials'" class="transition-opacity duration-300">
+
+                    <div class="mb-8">
+                        <p class="text-slate-500 font-bold tracking-widest text-[11px] uppercase mb-2">Welcome Back</p>
+                        <h2 class="text-3xl font-extrabold text-slate-900 mb-2">Sign in to continue</h2>
+                        <p class="text-slate-500 text-sm">Enter your account email and password.</p>
+                    </div>
+
+                    <form class="space-y-5">
+                        <!-- Email Input -->
+                        <div>
+                            <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">Email Address</label>
+                            <input type="email" ng-model="email" placeholder="name@example.com"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all" />
+                        </div>
+
+                        <!-- Password Input -->
+                        <div>
+                            <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">Password</label>
+                            <input type="password" ng-model="password" placeholder="Enter your password"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all" />
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button ng-click="authFunc()" ng-disabled="loading"
+                                class="w-full flex items-center justify-center gap-2 py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 mt-6">
+                            <span ng-if="!loading">Sign In</span>
+                            <span ng-if="loading">Signing in...</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- OTP VERIFICATION STEP -->
+                <div ng-show="step === 'verify'" class="transition-opacity duration-300">
+                    <div class="mb-8 text-center">
+                        <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Security Check</h2>
+                        <p class="text-slate-500 text-sm">6-digit code sent to <br /><span class="font-semibold text-slate-800">{{ email }}</span></p>
+                    </div>
+
+                    <div class="flex gap-2 justify-between mb-8">
+                        <input type="text" maxlength="1" ng-model="otp[0]" ng-change="otpNext(0)" ng-keydown="otpKeyDown($event, 0)" id="otp0" class="w-[50px] h-[56px] text-center text-xl font-bold border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-slate-50" />
+                        <input type="text" maxlength="1" ng-model="otp[1]" ng-change="otpNext(1)" ng-keydown="otpKeyDown($event, 1)" id="otp1" class="w-[50px] h-[56px] text-center text-xl font-bold border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-slate-50" />
+                        <input type="text" maxlength="1" ng-model="otp[2]" ng-change="otpNext(2)" ng-keydown="otpKeyDown($event, 2)" id="otp2" class="w-[50px] h-[56px] text-center text-xl font-bold border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-slate-50" />
+                        <input type="text" maxlength="1" ng-model="otp[3]" ng-change="otpNext(3)" ng-keydown="otpKeyDown($event, 3)" id="otp3" class="w-[50px] h-[56px] text-center text-xl font-bold border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-slate-50" />
+                        <input type="text" maxlength="1" ng-model="otp[4]" ng-change="otpNext(4)" ng-keydown="otpKeyDown($event, 4)" id="otp4" class="w-[50px] h-[56px] text-center text-xl font-bold border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-slate-50" />
+                        <input type="text" maxlength="1" ng-model="otp[5]" ng-change="otpNext(5)" ng-keydown="otpKeyDown($event, 5)" id="otp5" class="w-[50px] h-[56px] text-center text-xl font-bold border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-slate-50" />
+                    </div>
+
+                    <button ng-click="verifyCode()" ng-disabled="loading"
+                            class="w-full flex items-center justify-center gap-2 py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-green-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <span ng-if="!loading">Verify &amp; Continue</span>
+                        <span ng-if="loading">Verifying...</span>
+                    </button>
+
+                    <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-6">
+                        <button ng-click="step = 'credentials'; otp = ['', '', '', '', '', '']" class="text-[13px] font-semibold text-slate-500 hover:text-slate-800">
+                            Back
+                        </button>
+                        <button ng-click="resend()" ng-disabled="resendCooldown > 0" class="text-[13px] font-semibold text-green-600 hover:text-green-700 disabled:text-slate-400">
+                            {{ resendCooldown > 0 ? 'Resend in ' + resendCooldown + 's' : 'Resend code' }}
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>

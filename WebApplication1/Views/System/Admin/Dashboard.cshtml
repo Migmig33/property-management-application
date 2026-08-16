@@ -1,0 +1,141 @@
+﻿@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+
+<div class="p-6 space-y-6 overflow-y-auto flex-1" ng-init="getDataNum(); getAllPayments(); currentPage = 'Dashboard'">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-slate-900 text-2xl font-bold">Dashboard</h1>
+            <p class="text-slate-500 text-sm">Overview of GreenResidences operations</p>
+        </div>
+        <div class="text-slate-400 text-sm">{{thisMonthhs | date:'MM-yyyy'}}</div>
+    </div>
+     
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <button ng-click="goTo('Units')" class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all text-left">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /></svg>
+                </div>
+            </div>
+            <p class="text-slate-500 text-xs mb-1">Active Units</p>
+            <p class="text-slate-900 text-2xl font-bold">{{activeUnitNum.length || 0}}</p>
+            <p class="text-slate-400 text-xs mt-1">{{totalVacant || 0}} vacant</p>
+        </button>
+
+        <button ng-click="goTo('Bookings')" class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all text-left">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                </div>
+            </div>
+            <p class="text-slate-500 text-xs mb-1">Pending Bookings</p>
+            <p class="text-slate-900 text-2xl font-bold">{{pendingBookNum.length || 0}}</p>
+            <p class="text-slate-400 text-xs mt-1">Awaiting review</p>
+        </button>
+
+        <button ng-click="goTo('Payments')" class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all text-left">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
+                </div>
+                
+            </div>
+            <p class="text-slate-500 text-xs mb-1">Revenue</p>
+            <p class="text-slate-900 text-2xl font-bold">₱{{totalPayment || 0}}</p>
+            <p class="text-slate-400 text-xs mt-1">{{ totalUnpaid | number:0 }} unpaid</p>
+        </button>
+
+        <button ng-click="goTo('Maintenance')" class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all text-left">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
+                </div>
+            </div>
+            <p class="text-slate-500 text-xs mb-1">Open Maintenance</p>
+            <p class="text-slate-900 text-2xl font-bold">{{pendingRequestNum.length || 0}}</p>
+            <p class="text-slate-400 text-xs mt-1">Requests pending</p>
+        </button>
+
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <h3 class="text-slate-900 font-semibold mb-4">Monthly Revenue</h3>
+            <canvas class="chart chart-line"
+                    chart-data="linedata"
+                    chart-labels="linelabels"
+                    chart-series="lineseries"
+                    chart-colors="linecolors"
+                    chart-options="options">
+            </canvas>
+        </div>
+
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <h3 class="text-slate-900 font-semibold mb-4">Occupancy Trend</h3>
+            <canvas id="bar" class="chart chart-bar"
+                    chart-data="bardata" chart-labels="barlabels" chart-colors="barcolors"
+                chart-series="barseries">
+            </canvas>
+        </div>
+
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <h3 class="text-slate-900">Recent Bookings</h3>
+
+            <button ng-click="goTo('Bookings')"
+                    class="text-green-600 text-xs flex items-center gap-1 hover:text-green-700 transition-colors focus:outline-none">
+
+                View all
+                <span style="font-size:12px;">↗</span>
+            </button>
+        </div>
+
+        <!-- List -->
+        <div class="divide-y divide-slate-50">
+
+            <div ng-repeat="b in recentBookings" class="flex items-center gap-4 px-5 py-3">
+
+                <!-- Avatar -->
+                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-xs font-semibold flex-shrink-0">
+                    {{ b.name.charAt(0) }}
+                </div>
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                    <p class="text-slate-900 text-sm font-medium truncate">
+                        {{ b.name }}
+                    </p>
+                    <p class="text-slate-400 text-xs">
+                        {{ b.unitName }} · {{ formatDate(b.datetime) }}
+                    </p>
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <span class="text-xs px-2 py-1 rounded-full"
+                          ng-class="{
+            'bg-green-100 text-green-600': b.status === 'Confirmed',
+            'bg-yellow-100 text-yellow-600': b.status === 'Pending',
+            'bg-gray-100 text-gray-600': b.status == 'Cancelled',
+            'bg-red-100 text-red-600': b.status === 'Declined'
+          }">
+                        {{ b.status }}
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
