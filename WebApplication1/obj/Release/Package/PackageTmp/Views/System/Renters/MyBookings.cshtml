@@ -1,0 +1,470 @@
+﻿@{
+    Layout = "~/Views/Shared/_RentersLayout.cshtml";
+}
+
+<div class="min-h-screen bg-slate-50" ng-init="currentPage = 'MBookings'; getMyBookings()">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+        <!-- ============ HEADER ============ -->
+        <div class="mb-6">
+            <h1 class="text-slate-900 mb-1 text-2xl font-bold">My Bookings</h1>
+            <p class="text-slate-500 text-sm">
+                <span ng-if="mbVerified">Viewing requests for {{ mbName || mbEmail }}</span>
+                <span ng-if="!mbVerified">Your unit viewing history</span>
+            </p>
+        </div>
+
+        <!-- ============================================================
+             NOT SIGNED IN — LANDING (two CTA cards)
+        ============================================================ -->
+        <div ng-show="!mbVerified && !mbShowSignIn" class="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between">
+                <div>
+                    <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" x2="3" y1="12" y2="12" />
+                        </svg>
+                    </div>
+                    <h3 class="text-slate-800 mb-1 font-semibold">My Bookings</h3>
+                    <p class="text-slate-500 text-sm mb-6">
+                        Already booked a viewing? Sign in to track and manage your booking requests.
+                    </p>
+                </div>
+                <button ng-click="mbOpenSignIn()"
+                        class="flex items-center justify-center gap-2 w-full py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                        <polyline points="10 17 15 12 10 7" />
+                        <line x1="15" x2="3" y1="12" y2="12" />
+                    </svg>
+                    Sign In
+                </button>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-sm p-6 flex flex-col justify-between text-white">
+                <div>
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+                            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+                            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+                        </svg>
+                    </div>
+                    <h3 class="text-white mb-1 font-semibold">Browse Units</h3>
+                    <p class="text-green-100 text-sm mb-6">
+                        Explore our available units and book a viewing appointment today.
+                    </p>
+                </div>
+                <button ng-click="goTo('Browse')"
+                        class="flex items-center justify-center gap-2 w-full py-2.5 bg-white text-green-700 rounded-xl text-sm font-medium hover:bg-green-50 transition-all focus:outline-none focus:ring-2 focus:ring-white">
+                    Explore Available Units
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             NOT SIGNED IN — SIGN IN / OTP
+        ============================================================ -->
+        <div ng-show="!mbVerified && mbShowSignIn" class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+                <!-- Step: form -->
+                <div ng-show="mbStep === 'form'">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                                <polyline points="10 17 15 12 10 7" />
+                                <line x1="15" x2="3" y1="12" y2="12" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-slate-800 font-semibold">Sign In</h3>
+                            <p class="text-slate-400 text-xs">to view your bookings</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-slate-600 font-medium mb-1">Full Name *</label>
+                            <div class="relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                                <input type="text" ng-model="mbSignInName" placeholder="Your full name"
+                                       ng-class="{'border-red-300 bg-red-50': mbErrors.name, 'border-slate-200 bg-slate-50': !mbErrors.name}"
+                                       class="w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all" />
+                            </div>
+                            <p ng-if="mbErrors.name" class="text-red-500 text-xs mt-0.5">{{ mbErrors.name }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-600 font-medium mb-1">Email Address *</label>
+                            <div class="relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                                </svg>
+                                <input type="email" ng-model="mbSignInEmail" placeholder="you@example.com"
+                                       ng-class="{'border-red-300 bg-red-50': mbErrors.email, 'border-slate-200 bg-slate-50': !mbErrors.email}"
+                                       class="w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all" />
+                            </div>
+                            <p ng-if="mbErrors.email" class="text-red-500 text-xs mt-0.5">{{ mbErrors.email }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-600 font-medium mb-1">Phone / Contact *</label>
+                            <div class="relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                </svg>
+                                <input type="tel" ng-model="mbSignInPhone" placeholder="09XX-XXX-XXXX"
+                                       ng-class="{'border-red-300 bg-red-50': mbErrors.phone, 'border-slate-200 bg-slate-50': !mbErrors.phone}"
+                                       class="w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all" />
+                            </div>
+                            <p ng-if="mbErrors.phone" class="text-red-500 text-xs mt-0.5">{{ mbErrors.phone }}</p>
+                        </div>
+
+                        <button ng-click="mbSendOtp()" ng-disabled="mbLoading"
+                                ng-class="{'opacity-60': mbLoading}"
+                                class="w-full flex items-center justify-center gap-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-green-500 mt-1">
+                            {{ mbLoading ? 'Sending code...' : 'Continue' }}
+                        </button>
+                    </div>
+
+                    <p class="text-center text-slate-400 text-xs mt-3">
+                        A verification code will be sent to your email.
+                    </p>
+
+                    <button ng-click="mbCloseSignIn()" class="mt-3 w-full text-center text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                        &larr; Back
+                    </button>
+                </div>
+
+                <!-- Step: otp -->
+                <div ng-show="mbStep === 'otp'">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600">
+                                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                                <path d="m9 12 2 2 4-4" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-5">
+                        <h3 class="text-slate-800 mb-0.5 font-semibold">Check your email</h3>
+                        <p class="text-slate-400 text-xs">A 6-digit code was sent to</p>
+                        <p class="text-green-600 text-sm font-medium mt-0.5">{{ mbSignInEmail }}</p>
+                    </div>
+
+                    <label class="block text-xs text-slate-600 font-medium mb-2.5 text-center">Enter verification code</label>
+
+                    <div class="flex gap-1.5 justify-center mb-4">
+                        <input ng-repeat="i in [0,1,2,3,4,5]"
+                               id="mbOtp{{ i }}"
+                               type="text"
+                               inputmode="numeric"
+                               maxlength="1"
+                               ng-model="mbOtp[i]"
+                               ng-change="mbOtpNext(i)"
+                               class="w-10 text-center text-lg font-bold border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all bg-slate-50 text-slate-900"
+                               style="height: 46px;"
+                               aria-label="Digit {{ i + 1 }}" />
+                    </div>
+
+                    <button ng-click="mbVerify()" ng-disabled="mbOtpLoading"
+                            ng-class="{'opacity-60': mbOtpLoading}"
+                            class="w-full flex items-center justify-center gap-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-green-500">
+                        {{ mbOtpLoading ? 'Verifying...' : 'Verify and Sign In' }}
+                    </button>
+
+                    <div class="mt-3 text-center">
+                        <p class="text-slate-400 text-xs mb-1.5">Didn't receive the code?</p>
+                        <button ng-click="mbSendOtp()" ng-disabled="mbCooldown > 0"
+                                ng-class="{'text-slate-400 cursor-not-allowed': mbCooldown > 0, 'text-green-600 hover:text-green-700': mbCooldown === 0}"
+                                class="inline-flex items-center gap-1.5 text-sm font-medium transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                                <path d="M21 3v5h-5" />
+                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                                <path d="M8 16H3v5" />
+                            </svg>
+                            {{ mbCooldown > 0 ? 'Resend in ' + mbCooldown + 's' : 'Resend code' }}
+                        </button>
+                    </div>
+
+                    <button ng-click="mbBackToForm()" class="mt-3 w-full text-center text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                        &larr; Change details
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-sm p-6 flex flex-col justify-between text-white" style="min-height: 220px;">
+                <div>
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+                            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+                            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+                        </svg>
+                    </div>
+                    <h3 class="text-white mb-1 font-semibold">Browse Units</h3>
+                    <p class="text-green-100 text-sm mb-6">
+                        Explore our available units and book a viewing appointment today.
+                    </p>
+                </div>
+                <button ng-click="goTo('Browse')"
+                        class="flex items-center justify-center gap-2 w-full py-2.5 bg-white text-green-700 rounded-xl text-sm font-medium hover:bg-green-50 transition-all focus:outline-none focus:ring-2 focus:ring-white">
+                    Explore Available Units
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             SIGNED IN — SEARCH + FILTERS
+        ============================================================ -->
+        <div ng-show="mbVerified">
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm mb-5 space-y-4">
+
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input type="text" ng-model="mbSearch" ng-model-options="{ debounce: 300 }"
+                           placeholder="Search by unit name…"
+                           class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all" />
+                </div>
+
+                <div class="flex items-center gap-1 flex-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400 mr-1 flex-shrink-0">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                    </svg>
+
+                    <button ng-repeat="s in STATUS_FILTERS"
+                            ng-click="setMyBookingFilter(s)"
+                            ng-class="mbFilter === s ? 'bg-green-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-green-500">
+                        {{ s }}
+                        <span ng-class="mbFilter === s ? 'bg-green-500 text-white' : 'bg-white text-slate-500'"
+                              class="ml-1.5 px-1.5 py-0.5 rounded-full text-xs">
+                            {{ mbCountByStatus(s) }}
+                        </span>
+                    </button>
+
+                    <div class="flex-1"></div>
+
+                    <button ng-click="mbSignOut()" class="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">
+                        Sign out
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============ EMPTY STATE ============ -->
+            <div ng-if="filteredMyBookings().length === 0" class="text-center py-20 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400">
+                        <rect width="18" height="18" x="3" y="4" rx="2" />
+                        <path d="M16 2v4" />
+                        <path d="M8 2v4" />
+                        <path d="M3 10h18" />
+                    </svg>
+                </div>
+                <h3 class="text-slate-600 mb-1 font-semibold">No bookings found</h3>
+                <p class="text-slate-400 text-sm mb-4">
+                    <span ng-if="mbSearch">No results for "{{ mbSearch }}"</span>
+                    <span ng-if="!mbSearch">No {{ mbFilter === 'All' ? '' : mbFilter.toLowerCase() + ' ' }}bookings yet.</span>
+                </p>
+                <button ng-click="goTo('Browse')"
+                        class="px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all">
+                    Browse Units
+                </button>
+            </div>
+
+            <!-- ============ BOOKINGS LIST ============ -->
+            <div class="space-y-4">
+                <div ng-repeat="booking in filteredMyBookings() track by booking.id"
+                     ng-class="mbCancelTarget === booking.id ? 'border-red-200 shadow-red-50' : 'border-slate-100 hover:shadow-md'"
+                     class="bg-white rounded-2xl border shadow-sm transition-all overflow-hidden">
+
+                    <div class="p-5">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+
+                                <div class="flex items-center gap-2 flex-wrap mb-2">
+                                    <h3 class="text-slate-900 font-semibold">{{ booking.unitName }}</h3>
+                                    <span class="text-xs px-2.5 py-1 rounded-full font-medium" ng-class="getBookingStatusClass(booking.status)">
+                                        {{ booking.status }}
+                                    </span>
+                                </div>
+
+                                <div class="flex flex-wrap gap-4 text-slate-500 text-sm mb-2">
+                                    <span class="flex items-center gap-1.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500 flex-shrink-0">
+                                            <rect width="18" height="18" x="3" y="4" rx="2" />
+                                            <path d="M16 2v4" />
+                                            <path d="M8 2v4" />
+                                            <path d="M3 10h18" />
+                                        </svg>
+                                        {{ booking.date }}
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500 flex-shrink-0">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <polyline points="12 6 12 12 16 14" />
+                                        </svg>
+                                        {{ booking.time }}
+                                    </span>
+                                </div>
+
+                                <div class="flex flex-wrap gap-4 text-slate-400 text-xs">
+                                    <span class="flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg>
+                                        {{ booking.name }}
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                        </svg>
+                                        {{ booking.phone }}
+                                    </span>
+                                </div>
+
+                                <p ng-if="booking.notes" class="text-slate-400 text-xs mt-2 italic">"{{ booking.notes }}"</p>
+                            </div>
+
+                            <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                                <button ng-if="booking.unitId" ng-click="mbViewUnit(booking.unitId)"
+                                        class="p-2 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-700 transition-all focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        aria-label="View unit">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m9 18 6-6-6-6" />
+                                    </svg>
+                                </button>
+
+                                <button ng-if="mbCanCancel(booking)" ng-click="mbOpenCancel(booking)"
+                                        class="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition-colors px-2 py-1 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="m15 9-6 6" />
+                                        <path d="m9 9 6 6" />
+                                    </svg>
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Status banners -->
+                        <div ng-if="booking.status === 'Confirmed' && mbCancelTarget !== booking.id"
+                             class="mt-3 p-3 bg-emerald-50 rounded-xl text-xs text-emerald-700">
+                            ✅ Your viewing has been confirmed. Please be on time.
+                        </div>
+
+                        <div ng-if="booking.status === 'Pending' && mbCancelTarget !== booking.id"
+                             class="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700">
+                            ⏳ Your booking is under review. We'll notify you soon.
+                        </div>
+
+                        <div ng-if="booking.status === 'Declined'" class="mt-3 space-y-2">
+                            <div class="p-3 bg-red-50 rounded-xl text-xs text-red-700">
+                                ❌ This viewing was declined by the admin. Please book another slot.
+                            </div>
+                            <div ng-if="booking.cancelReason" class="p-3 bg-red-50 border border-red-100 rounded-xl">
+                                <span class="text-xs text-red-700">
+                                    <span class="font-semibold text-red-600">Admin reason: </span>{{ booking.cancelReason }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div ng-if="booking.status === 'Cancelled' && booking.cancelReason"
+                             class="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-500">
+                            <span class="font-medium text-slate-600">Your reason:</span> {{ booking.cancelReason }}
+                        </div>
+                    </div>
+
+                    <!-- ============ INLINE CANCEL FORM ============ -->
+                    <div ng-if="mbCancelTarget === booking.id" class="border-t border-red-100 bg-red-50">
+                        <div class="p-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500">
+                                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                                    <path d="M12 9v4" />
+                                    <path d="M12 17h.01" />
+                                </svg>
+                                <p class="text-sm text-red-700 font-medium">Cancel this booking?</p>
+                            </div>
+
+                            <p class="text-xs text-red-600 mb-4">
+                                Please tell us why you're cancelling your viewing of <strong>{{ booking.unitName }}</strong>.
+                            </p>
+
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <button ng-repeat="r in CANCEL_REASONS"
+                                        ng-click="mbSetCancelReason(r)"
+                                        ng-class="mbCancelReason === r ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200 hover:border-red-300 hover:text-red-600'"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all focus:outline-none focus:ring-2 focus:ring-red-400">
+                                    {{ r }}
+                                </button>
+                            </div>
+
+                            <div ng-if="mbCancelReason === 'Other'" class="mb-3">
+                                <textarea ng-model="mbCustomReason" rows="2"
+                                          placeholder="Please describe your reason…"
+                                          class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"></textarea>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button ng-click="mbConfirmCancel()" ng-disabled="mbCancelLoading"
+                                        ng-class="{'opacity-60': mbCancelLoading}"
+                                        class="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-red-500">
+                                    {{ mbCancelLoading ? 'Cancelling…' : 'Confirm Cancellation' }}
+                                </button>
+                                <button ng-click="mbCloseCancel()"
+                                        class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                    Keep Booking
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ BOTTOM CTA ============ -->
+        <div class="mt-10 text-center">
+            <p class="text-slate-400 text-sm mb-3">Looking for a unit?</p>
+            <button ng-click="goTo('Browse')"
+                    class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all">
+                Browse Available Units
+            </button>
+        </div>
+
+    </div>
+</div>
+<!-- Toast Notification -->
+<div ng-show="toastShow" style="animation: slideDown 0.5s ease-in-out"
+     class="fixed top-4 right-4 z-[100] flex items-center gap-3 bg-white border shadow-sm rounded-2xl px-5 py-4 w-[400px] max-w-full transition-all duration-300"
+     ng-class="{'border-green-200': toast.type === 'success', 'border-red-200': toast.type === 'error'}">
+    <span class="font-medium text-[15px]" ng-class="{'text-green-700': toast.type === 'success', 'text-red-700': toast.type === 'error'}">
+        {{ toast.message }}
+    </span>
+</div>

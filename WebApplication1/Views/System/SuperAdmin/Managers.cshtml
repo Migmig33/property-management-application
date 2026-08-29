@@ -1,0 +1,420 @@
+﻿@{
+    Layout = "~/Views/Shared/_SuperAdminLayout.cshtml";
+}
+<div class="p-4 sm:p-6 space-y-6" ng-init="initManagers(); currentPage = 'propertymanagers'" ng-cloak>
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h1 class="text-slate-900 mb-0.5 text-xl font-semibold">Property Managers</h1>
+            <p ng-if="!isLoading" class="text-slate-500 text-sm">
+                Manage admin accounts and access for this portal.
+            </p>
+            <!-- Header Skeleton -->
+            <div ng-if="isLoading" class="h-4 w-64 bg-slate-200 rounded animate-pulse mt-1"></div>
+        </div>
+        <button ng-click="openCreate()"
+                class="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-all shadow-sm shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            Add Manager
+        </button>
+    </div>
+
+    <!-- Stats (Skeleton State) -->
+    <div ng-if="isLoading" class="grid grid-cols-3 gap-3 animate-pulse">
+        <div ng-repeat="i in [1, 2, 3]" class="bg-white rounded-2xl border border-slate-100 px-4 py-3 flex flex-col items-center justify-center">
+            <div class="h-8 w-12 bg-slate-200 rounded mb-1"></div>
+            <div class="h-3 w-20 bg-slate-200 rounded mt-0.5"></div>
+        </div>
+    </div>
+
+    <!-- Stats (Loaded State) -->
+    <div ng-if="!isLoading" class="grid grid-cols-3 gap-3">
+        <div class="bg-white rounded-2xl border border-slate-100 px-4 py-3 text-center">
+            <p class="text-2xl font-bold text-slate-900">{{ getStats().total }}</p>
+            <p class="text-slate-500 text-xs mt-0.5">Total Accounts</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-100 px-4 py-3 text-center">
+            <p class="text-2xl font-bold text-green-600">{{ getStats().active }}</p>
+            <p class="text-slate-500 text-xs mt-0.5">Active</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-100 px-4 py-3 text-center">
+            <p class="text-2xl font-bold text-slate-400">{{ getStats().inactive }}</p>
+            <p class="text-slate-500 text-xs mt-0.5">Inactive</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-col sm:flex-row gap-2">
+        <div class="relative flex-1">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text"
+                   ng-model="search"
+                   placeholder="Search by name or email…"
+                   class="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" />
+        </div>
+        <select ng-model="filterRole"
+                class="px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all">
+            <option value="all">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="property_manager">Property Manager</option>
+        </select>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+
+        <!-- Empty State -->
+        <div ng-show="!isLoading && filteredManagers.length === 0" class="py-16 text-center">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-300 mx-auto mb-3"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><circle cx="19" cy="11" r="3" /><path d="M19 14v2" /><path d="M19 8v2" /><path d="M17 10h4" /></svg>
+            <p class="text-slate-500 text-sm">No managers found.</p>
+        </div>
+
+        <div ng-show="isLoading || filteredManagers.length > 0">
+            <!-- Desktop table -->
+            <div class="hidden sm:block overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-100 bg-slate-50">
+                            <th class="text-left text-xs font-semibold text-slate-500 px-5 py-3">Account</th>
+                            <th class="text-left text-xs font-semibold text-slate-500 px-5 py-3">Role</th>
+                            <th class="text-left text-xs font-semibold text-slate-500 px-5 py-3">Status</th>
+                            <th class="text-left text-xs font-semibold text-slate-500 px-5 py-3">Last Active</th>
+                            <th class="text-right text-xs font-semibold text-slate-500 px-5 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Skeleton Rows -->
+                        <tr ng-if="isLoading" ng-repeat="i in [1, 2, 3, 4]" class="border-b border-slate-50 animate-pulse">
+                            <td class="px-5 py-3.5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-slate-200 shrink-0"></div>
+                                    <div class="space-y-1.5 flex-1">
+                                        <div class="h-4 w-32 bg-slate-200 rounded"></div>
+                                        <div class="h-3 w-24 bg-slate-200 rounded"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-3.5"><div class="h-5 w-24 bg-slate-200 rounded-full"></div></td>
+                            <td class="px-5 py-3.5"><div class="h-5 w-16 bg-slate-200 rounded-full"></div></td>
+                            <td class="px-5 py-3.5"><div class="h-3 w-20 bg-slate-200 rounded"></div></td>
+                            <td class="px-5 py-3.5">
+                                <div class="flex items-center justify-end gap-1">
+                                    <div class="w-8 h-8 rounded-lg bg-slate-200"></div>
+                                    <div class="w-8 h-8 rounded-lg bg-slate-200"></div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Loaded Rows -->
+                        <tr ng-if="!isLoading" ng-repeat="m in filteredManagers = (propertyManagers | filter:searchFilter)"
+                            class="border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/60"
+                            ng-class="{'bg-green-50/40': m.role === 'admin'}">
+
+                            <td class="px-5 py-3.5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
+                                         ng-class="avatarColor(m.id)">
+                                        {{ getInitials(m.name) }}
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-slate-900 leading-tight">{{ m.name }}</p>
+                                        <p class="text-xs text-slate-400">{{ m.email }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <!-- Role Badge -->
+                                <span ng-if="m.role === 'admin'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg> Admin
+                                </span>
+                                <span ng-if="m.role === 'property_manager'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> Property Manager
+                                </span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <!-- Status Pill -->
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                                      ng-class="m.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+                                    <span class="w-1.5 h-1.5 rounded-full" ng-class="m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'"></span>
+                                    {{ m.status === 'active' ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3.5 text-slate-500 text-xs">{{ formatDate(m.lastLogin) }}</td>
+                            <td class="px-5 py-3.5">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button title="Edit account" ng-click="openEdit(m)" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
+                                    </button>
+
+                                    <button title="Delete account"
+                                            ng-click="confirmDelete(m)"
+                                            ng-disabled="m.role === 'admin'"
+                                            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                                            ng-class="m.role === 'admin' ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:bg-red-50 hover:text-red-500'">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile cards -->
+            <div class="sm:hidden divide-y divide-slate-100">
+                <!-- Skeleton Mobile Cards -->
+                <div ng-if="isLoading" class="divide-y divide-slate-100 animate-pulse">
+                    <div ng-repeat="i in [1, 2, 3]" class="px-4 py-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-3 w-full">
+                                <div class="w-10 h-10 rounded-xl bg-slate-200 shrink-0"></div>
+                                <div class="space-y-1.5 flex-1">
+                                    <div class="h-4 w-32 bg-slate-200 rounded"></div>
+                                    <div class="h-3 w-24 bg-slate-200 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-1.5 shrink-0">
+                                <div class="h-5 w-20 bg-slate-200 rounded-full"></div>
+                                <div class="h-5 w-16 bg-slate-200 rounded-full"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-3">
+                            <div class="h-3 w-32 bg-slate-200 rounded"></div>
+                            <div class="flex gap-1">
+                                <div class="w-8 h-8 rounded-lg bg-slate-200"></div>
+                                <div class="w-8 h-8 rounded-lg bg-slate-200"></div>
+                                <div class="w-8 h-8 rounded-lg bg-slate-200"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loaded Mobile Cards -->
+                <div ng-if="!isLoading" ng-repeat="m in filteredManagers" class="px-4 py-4" ng-class="{'bg-green-50/40': m.role === 'admin'}">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0" ng-class="avatarColor(m.id)">
+                                {{ getInitials(m.name) }}
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-900 text-sm">{{ m.name }}</p>
+                                <p class="text-xs text-slate-400">{{ m.email }}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1.5 shrink-0">
+                            <!-- Role Badge (Mobile) -->
+                            <span ng-if="m.role === 'admin'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg> Admin
+                            </span>
+                            <span ng-if="m.role === 'property_manager'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> Property Manager
+                            </span>
+
+                            <!-- Status Pill (Mobile) -->
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                                  ng-class="m.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+                                <span class="w-1.5 h-1.5 rounded-full" ng-class="m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'"></span>
+                                {{ m.status === 'active' ? 'Active' : 'Inactive' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between mt-3">
+                        <p class="text-xs text-slate-400">
+                            Last Active: {{ formatDate(m.lastLogin) }}
+                        </p>
+                        <div class="flex gap-1">
+                            <button title="Edit" ng-click="openEdit(m)" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
+                            </button>
+                            <button title="Toggle"
+                                    ng-click="handleToggleStatus(m)"
+                                    ng-disabled="m.role === 'admin'"
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                                    ng-class="m.role === 'admin' ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'">
+                                <svg ng-if="m.status === 'active'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-green-500"><rect x="2" y="6" width="20" height="12" rx="6" /><circle cx="16" cy="12" r="2" /></svg>
+                                <svg ng-if="m.status !== 'active'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><rect x="2" y="6" width="20" height="12" rx="6" /><circle cx="8" cy="12" r="2" /></svg>
+                            </button>
+                            <button title="Delete"
+                                    ng-click="confirmDelete(m)"
+                                    ng-disabled="m.role === 'admin'"
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                                    ng-class="m.role === 'admin' ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:bg-red-50 hover:text-red-500'">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Create / Edit Modal ── -->
+    <div ng-show="modalOpen"
+         class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 transition-opacity duration-200"
+         ng-click="handleBackdropClick($event)">
+
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all duration-200"
+             ng-class="modalOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'"
+             id="managerModalContainer">
+
+            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-green-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><circle cx="19" cy="11" r="3" /><path d="M19 14v2" /><path d="M19 8v2" /><path d="M17 10h4" /></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-slate-900 text-base font-semibold">
+                            {{ modalMode === 'create' ? 'Add Property Manager' : 'Edit Account' }}
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">
+                            {{ modalMode === 'create' ? 'Create a new admin account for this portal.' : 'Editing ' + editTarget.name }}
+                        </p>
+                    </div>
+                </div>
+                <button ng-click="closeModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+            </div>
+
+            <form ng-submit="handleSave($event)" class="px-6 py-5 space-y-4">
+
+                <!-- Name -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Full Name</label>
+                    <div class="relative">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                        <input id="firstInput" type="text" ng-model="form.name" placeholder="e.g. Maria Santos" class="{{ getInputClass(formErrors.name) }}" />
+                    </div>
+                    <p class="text-xs text-red-500 mt-1" ng-show="formErrors.name">{{ formErrors.name }}</p>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Email Address</label>
+                    <div class="relative">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+                        <input type="email"
+                               ng-model="form.email"
+                               placeholder="manager@greenresidences.com"
+                               ng-disabled="editTarget.role === 'admin'"
+                               class="{{ getInputClass(formErrors.email) }}"
+                               ng-class="{'opacity-60 cursor-not-allowed': editTarget.role === 'admin'}" />
+                    </div>
+                    <p class="text-xs text-red-500 mt-1" ng-show="formErrors.email">{{ formErrors.email }}</p>
+                </div>
+
+                <!-- Role & Status -->
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Role -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1.5">Role</label>
+                        <select ng-model="form.role"
+                                ng-disabled="editTarget.role === 'admin'"
+                                class="w-full px-3 py-2.5 text-sm border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all border-slate-200"
+                                ng-class="{'opacity-60 cursor-not-allowed': editTarget.role === 'admin'}">
+                            <option value="2">Property Manager</option>
+                            <option value="1">Admin</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <!-- Divider -->
+                <div class="border-t border-slate-100 pt-1">
+                    <p class="text-xs text-slate-400 mb-3">
+                        {{ modalMode === 'create' ? 'Set a password for this account.' : 'Leave blank to keep the existing password.' }}
+                    </p>
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Password</label>
+                    <div class="relative">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                        <input type="{{ showPassword ? 'text' : 'password' }}"
+                               ng-model="form.password"
+                               placeholder="{{ modalMode === 'edit' ? 'New password (optional)' : 'Min. 8 characters' }}"
+                               class="{{ getInputClass(formErrors.password) }} pr-10" />
+                        <button type="button" ng-click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                            <svg ng-if="!showPassword" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                            <svg ng-if="showPassword" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-red-500 mt-1" ng-show="formErrors.password">{{ formErrors.password }}</p>
+                </div>
+
+                <!-- Confirm Password -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Confirm Password</label>
+                    <div class="relative">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                        <input type="{{ showConfirm ? 'text' : 'password' }}"
+                               ng-model="form.confirmPassword"
+                               placeholder="Re-enter password"
+                               class="{{ getInputClass(formErrors.confirmPassword) }} pr-10" />
+                        <button type="button" ng-click="showConfirm = !showConfirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                            <svg ng-if="!showConfirm" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                            <svg ng-if="showConfirm" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-red-500 mt-1" ng-show="formErrors.confirmPassword">{{ formErrors.confirmPassword }}</p>
+                </div>
+
+                <!-- Admin Notice -->
+                <div ng-if="editTarget.role === 'admin'" class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-500 shrink-0 mt-0.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+                    <p class="text-xs text-amber-700">
+                        Some fields are locked for the admin account to protect system integrity.
+                    </p>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-2 pt-1">
+                    <button type="button" ng-click="closeModal()" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" ng-disabled="saving" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-60 transition-all">
+                        <span ng-if="saving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        <span ng-if="!saving">{{ modalMode === 'create' ? 'Create Account' : 'Save Changes' }}</span>
+                        <span ng-if="saving">Saving…</span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Delete Confirm Modal ── -->
+    <div ng-show="deleteOpen"
+         class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 transition-opacity duration-200"
+         ng-click="handleDeleteBackdropClick($event)">
+
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 transform transition-all duration-200"
+             ng-class="deleteOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'"
+             id="deleteModalContainer">
+
+            <div class="flex justify-center mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-500"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                </div>
+            </div>
+            <h3 class="text-slate-900 text-center mb-1 text-lg font-semibold">Delete Account?</h3>
+            <p class="text-sm text-slate-500 text-center mb-5">
+                Are you sure you want to permanently delete
+                <span class="font-semibold text-slate-700">{{ deleteTarget.name }}</span>'s account? This action cannot be undone.
+            </p>
+            <div class="flex gap-2">
+                <button ng-click="deleteOpen = false; deleteTarget = null;" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">
+                    Cancel
+                </button>
+                <button ng-click="handleDelete()" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

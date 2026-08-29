@@ -1,17 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Web;
+﻿    using System;
+    using System.Collections.Generic;
+    using System.Configuration;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Text;
+    using System.Web;
 
 namespace WebApplication1.Services
 {
     public class SmsServices
     {
-        private const string UNISMS_ENDPOINT = "https://unismsapi.com/api/sms";
+
+        private const string PHILSMS_ENDPOINT = "https://dashboard.philsms.com/api/v3/sms/send";
+
         public static string NormalizePhone(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return null;
@@ -30,37 +32,31 @@ namespace WebApplication1.Services
             return null;   // too short, junk data, or a landline
         }
 
-        /// <summary>
-        /// Sends one SMS through UniSMS.
-        /// Returns null on success, or an error message on failure.
-        /// </summary>
         public static string SendSms(string toPhone, string message)
         {
             try
             {
-                string secretKey = ConfigurationManager.AppSettings["UniSmsApiKey"];
-                if (string.IsNullOrWhiteSpace(secretKey))
-                    return "UniSmsApiKey is not set in Web.config.";
+                string token = ConfigurationManager.AppSettings["PhilSmsToken"];
+                if (string.IsNullOrWhiteSpace(token))
+                    return "PhilSmsToken is not set in Web.config.";
 
-                string senderId = ConfigurationManager.AppSettings["UniSmsSenderId"];
+                string senderId = ConfigurationManager.AppSettings["PhilSmsSenderId"];
                 if (string.IsNullOrWhiteSpace(senderId))
-                    return "UniSmsSenderId is not set in Web.config.";
+                    return "PhilSmsSenderId is not set in Web.config.";
 
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-                var request = (HttpWebRequest)WebRequest.Create(UNISMS_ENDPOINT);
+                var request = (HttpWebRequest)WebRequest.Create(PHILSMS_ENDPOINT);
                 request.Method = "POST";
                 request.ContentType = "application/json";
                 request.Accept = "application/json";
+                request.Headers["Authorization"] = "Bearer " + token;
 
-                // Basic auth: secret key as the username, blank password
-                string basic = Convert.ToBase64String(
-                    Encoding.UTF8.GetBytes(secretKey + ":"));
-                request.Headers["Authorization"] = "Basic " + basic;
-
-                string body = "{\"recipient\":\"" + Escape(toPhone) + "\"," +
-               "\"sender_id\":\"" + Escape(senderId) + "\"," +
-               "\"content\":\"" + Escape(message) + "\"}";
+                string body = "{" +
+                    "\"recipient\":\"" + Escape(toPhone) + "\"," +
+                    "\"sender_id\":\"" + Escape(senderId) + "\"," +
+                    "\"type\":\"plain\"," +
+                    "\"message\":\"" + Escape(message) + "\"}";
 
                 byte[] payload = Encoding.UTF8.GetBytes(body);
                 request.ContentLength = payload.Length;
@@ -70,13 +66,16 @@ namespace WebApplication1.Services
                     stream.Write(payload, 0, payload.Length);
                 }
 
+                string raw;
                 using (var response = (HttpWebResponse)request.GetResponse())
+                using (var reader = new StreamReader(response.GetResponseStream()))
                 {
-                    int code = (int)response.StatusCode;
-                    if (code >= 200 && code < 300) return null;
-
-                    return "UniSMS returned HTTP " + code;
+                    raw = reader.ReadToEnd();
                 }
+
+                // PhilSMS can return HTTP 200 with {"status":"error", ...},
+                // so the body has to be checked, not just the status code.
+                return ReadStatus(raw);
             }
             catch (WebException wex)
             {
@@ -100,6 +99,29 @@ namespace WebApplication1.Services
                 return ex.Message;
             }
         }
+        private static string ReadStatus(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return "Empty response from PhilSMS.";
+
+            try
+            {
+                dynamic parsed = Newtonsoft.Json.JsonConvert.DeserializeObject(raw);
+
+                string status = (string)parsed.status;
+
+                if (string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
+                    return null;
+
+                string msg = (string)parsed.message;
+                return string.IsNullOrWhiteSpace(msg) ? raw : msg;
+            }
+            catch
+            {
+                // Unparseable body — hand the whole thing back
+                return raw;
+            }
+        }
 
         /// <summary>Minimal JSON string escaping for the request body.</summary>
         private static string Escape(string value)
@@ -113,5 +135,6 @@ namespace WebApplication1.Services
                 .Replace("\n", "\\n")
                 .Replace("\t", "\\t");
         }
+
     }
 }

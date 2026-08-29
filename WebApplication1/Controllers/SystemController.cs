@@ -7,18 +7,47 @@ using System.Web;
 using System.Web.Helpers;
 using System.Web.Mvc;
 using WebApplication1;
+using WebApplication1.Filter;
+using WebApplication1.Helper;
+using WebApplication1.Models;
 using WebApplication1.Models.Context;
 using WebApplication1.Models.Tables;
 using WebApplication1.Services;
 using static WebApplication1.Services.NotificationChecker;
 namespace WebApplication1.Controllers
 {
+    [RateLimit(sec = 10, requests = 5)]
+
     public class SystemController : Controller
+
     {
+
+
+
         // GET: System
         public ActionResult Index()
         {
             return View();
+        }
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        public ActionResult AdminDashboard()
+        {
+            return View("SuperAdmin/Dashboard");
+        }
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        public ActionResult AdminManagers()
+        {
+            return View("SuperAdmin/Managers");
+        }
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        public ActionResult AdminTables()
+        {
+            return View("SuperAdmin/Table");
+        }
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        public ActionResult AdminLogs()
+        {
+            return View("SuperAdmin/Log");
         }
         public ActionResult RentersBrowse()
         {
@@ -33,26 +62,34 @@ namespace WebApplication1.Controllers
             return View("Renters/UnitDetails");
 
         }
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Dashboard()
         {
             return View("Admin/Dashboard");
         }
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Units()
         {
             return View("Admin/Units");
         }
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Tenants()
         {
             return View("Admin/Tenants");
         }
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Bookings()
         {
             return View("Admin/Bookings");
         }
+        [CheckSession(AllowedRoles = new[] { 2 })]
+
         public ActionResult Maintenance()
         {
             return View("Admin/Maintenance");
         }
+        [CheckSession(AllowedRoles = new[] { 2 })]
+
         public ActionResult Payments()
         {
             return View("Admin/Payments");
@@ -61,6 +98,8 @@ namespace WebApplication1.Controllers
         {
             return View();
         }
+        [CheckSession(AllowedRoles = new[] { 3 })]
+
         public ActionResult TenantPortal()
         {
             return View();
@@ -127,7 +166,7 @@ namespace WebApplication1.Controllers
                             address = tenantData.address,
                             occupation = tenantData.occupation,
                             occupancyTypeId = tenantData.occupancyTypeId,
-                            passwordHash = tenantData.passwordHash,
+                            passwordHash = BCrypt.Net.BCrypt.HashPassword(tenantData.passwordHash),   // hashed
                             unitId = tenantData.unitId,
                             status = "Active",
                             isTerminated = 0,
@@ -194,6 +233,7 @@ namespace WebApplication1.Controllers
                             connect.SaveChanges();
                         }
 
+                        AuditLogger.Log("user", "info", "Created tenant: " + newTenant.name, CurrentUserName());
                         return Json(new { success = true, message = "Tenant Saved Successfully" },
                                     JsonRequestBehavior.AllowGet);
                     }
@@ -213,9 +253,9 @@ namespace WebApplication1.Controllers
                     existingTenant.leaseStart = tenantData.leaseStart;
                     existingTenant.leaseEnd = tenantData.leaseEnd;
 
-                    // Blank means "leave the password alone"
+                    // Blank means "leave the password alone"; if provided, hash it
                     if (!string.IsNullOrEmpty(tenantData.passwordHash))
-                        existingTenant.passwordHash = tenantData.passwordHash;
+                        existingTenant.passwordHash = BCrypt.Net.BCrypt.HashPassword(tenantData.passwordHash);   // hashed
 
                     connect.SaveChanges();
 
@@ -322,6 +362,7 @@ namespace WebApplication1.Controllers
                         }
                     }
 
+                    AuditLogger.Log("user", "info", "Updated tenant: " + existingTenant.name, CurrentUserName());
                     return Json(new { success = true, message = "Tenant Saved Successfully" },
                                 JsonRequestBehavior.AllowGet);
                 }
@@ -438,6 +479,8 @@ namespace WebApplication1.Controllers
 
                     connect.SaveChanges();
 
+                    AuditLogger.Log("settings", "info",
+                        (existingUnit == null ? "Created unit: " : "Updated unit: ") + data.unitName, CurrentUserName());
                     return Json(new
                     {
                         success = true,
@@ -510,6 +553,8 @@ namespace WebApplication1.Controllers
                     booking.status = "Confirmed";
                     connect.SaveChanges();
 
+                    AuditLogger.Log("settings", "info", "Confirmed booking: " + booking.guestName, CurrentUserName());
+
                     var unit = connect.unit.FirstOrDefault(u => u.Uid == booking.Uid);
                     var unitName = unit?.unitName ?? "the unit";
 
@@ -537,6 +582,8 @@ namespace WebApplication1.Controllers
                     booking.status = "Declined";
                     booking.cancelReason = reason;
                     connect.SaveChanges();
+
+                    AuditLogger.Log("settings", "warning", "Declined booking: " + booking.guestName, CurrentUserName());
 
                     var unit = connect.unit.FirstOrDefault(u => u.Uid == booking.Uid);
                     var unitName = unit?.unitName ?? "the unit";
@@ -574,6 +621,7 @@ namespace WebApplication1.Controllers
                             connect.busy_schedule.Remove(existingDate);
                             connect.SaveChanges();
 
+                            AuditLogger.Log("settings", "warning", "Unblocked date: " + parsedDate.ToString("MMM d, yyyy"), CurrentUserName());
                             return Json(new { success = true, action = "removed" });
                         }
                         else
@@ -587,6 +635,7 @@ namespace WebApplication1.Controllers
                             connect.busy_schedule.Add(newBusy);
                             connect.SaveChanges();
 
+                            AuditLogger.Log("settings", "info", "Blocked date: " + parsedDate.ToString("MMM d, yyyy"), CurrentUserName());
                             return Json(new { success = true, action = "added" });
                         }
                     }
@@ -613,6 +662,7 @@ namespace WebApplication1.Controllers
                         connect.busy_schedule.RemoveRange(allDates);
                         connect.SaveChanges();
 
+                        AuditLogger.Log("settings", "warning", "Cleared all busy dates", CurrentUserName());
                         return Json(new { success = true, message = "All busy dates cleared." });
                     }
 
@@ -625,6 +675,8 @@ namespace WebApplication1.Controllers
                         {
                             connect.busy_schedule.Remove(targetDate);
                             connect.SaveChanges();
+
+                            AuditLogger.Log("settings", "warning", "Removed busy date: " + parsedDate.ToString("MMM d, yyyy"), CurrentUserName());
                         }
 
                         return Json(new { success = true, message = "Busy date removed." });
@@ -668,6 +720,7 @@ namespace WebApplication1.Controllers
                         connect.maintenance_request.Add(newRequest);
                         connect.SaveChanges();
 
+                        AuditLogger.Log("settings", "info", "Created maintenance request", CurrentUserName());
                         return Json(new { success = true, message = "Request saved successfully" }, JsonRequestBehavior.AllowGet);
                     }
                     else
@@ -683,6 +736,7 @@ namespace WebApplication1.Controllers
 
                             connect.SaveChanges();
 
+                            AuditLogger.Log("settings", "info", "Updated maintenance status: " + existingRequest.status, CurrentUserName());
                             return Json(new { success = true, newId = existingRequest.id, message = "Request saved successfully" }, JsonRequestBehavior.AllowGet);
                         }
                         else
@@ -748,6 +802,7 @@ namespace WebApplication1.Controllers
                     }
 
                     db.SaveChanges();
+                    AuditLogger.Log("settings", "info", "Marked payments paid for tenant #" + Tid, CurrentUserName());
                     return Json(new { success = true, message = "Payments marked as paid." });
                 }
             }
@@ -909,6 +964,84 @@ namespace WebApplication1.Controllers
             {
                 return Json(new { success = false, message = ErrorHandling(ex) }, JsonRequestBehavior.AllowGet);
             }
+        }
+
+        public ActionResult GetDashboardDataAdmin()
+        {
+            try
+            {
+                using (var connect = new DB_Context())
+                {
+                    var activeWindow = DateTime.Now.AddMinutes(-15); // "active right now" knob
+
+                    // ---- 1. Active users (admin + tenant by lastActive) ----
+                    int adminTotal = connect.admin.Count();
+                    int tenantTotal = connect.tenant.Count();
+                    int adminActive = connect.admin.Count(a => a.lastActive != null && a.lastActive >= activeWindow);
+                    int tenantActive = connect.tenant.Count(t => t.lastActive != null && t.lastActive >= activeWindow);
+
+                    int totalUsers = adminTotal + tenantTotal;
+                    int activeUsers = adminActive + tenantActive;
+
+                    // ---- 2. Accounts card (admin table) ----
+                    var accounts = connect.admin
+                        .OrderByDescending(a => a.lastActive)
+                        .ToList()
+                        .Select(a => new
+                        {
+                            name = a.name,   // ← swap for your real admin columns
+                            email = a.email,
+                            status = (a.lastActive != null && a.lastActive >= activeWindow) ? "active" : "inactive"
+                        })
+                        .ToList();
+
+                    // ---- 3. Security alerts (from audit_log) ----
+                    int criticalAlerts = connect.audit_log.Count(x => x.severity == "critical");
+                    int warningAlerts = connect.audit_log.Count(x => x.severity == "warning");
+
+                    // ---- 4. Recent activity ----
+                    var logs = connect.audit_log
+                        .OrderByDescending(x => x.createdAt)
+                        .Take(8)
+                        .ToList();
+
+                    var recentActivity = logs.Select(x => new
+                    {
+                        type = x.type,
+                        message = x.message,
+                        actor = x.actor,
+                        time = RelativeTime(x.createdAt)
+                    }).ToList();
+
+                    // ---- 5. Return (flat, camelCase) ----
+                    return Json(new
+                    {
+                        activeManagers = activeUsers,
+                        lockedManagers = totalUsers - activeUsers,
+                        totalAccounts = totalUsers,
+                        securityAlerts = criticalAlerts + warningAlerts,
+                        criticalAlerts = criticalAlerts,
+                        warningAlerts = warningAlerts,
+                        propertyManagers = accounts,
+                        recentActivity = recentActivity
+                    }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // Relative time — uses DateTime.Now to match your local-time convention
+        private static string RelativeTime(DateTime when)
+        {
+            var span = DateTime.Now - when;
+            if (span.TotalSeconds < 60) return "just now";
+            if (span.TotalMinutes < 60) return (int)span.TotalMinutes + "m ago";
+            if (span.TotalHours < 24) return (int)span.TotalHours + "h ago";
+            if (span.TotalDays < 7) return (int)span.TotalDays + "d ago";
+            return when.ToString("MMM d");
         }
         [HttpGet]
         public JsonResult GetAllAmenities()
@@ -1270,7 +1403,7 @@ namespace WebApplication1.Controllers
 
                             resolvedDate = m.resolvedDate.HasValue ? m.resolvedDate.Value.ToString("MMM dd, yyyy hh:mm tt") : null,
                             // UI placeholders for fields that aren't in your DB model yet
-                   
+
                             scheduledDate = (string)null,
                             scheduledTime = (string)null
                         };
@@ -1308,6 +1441,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
+                BillingScheduler.Run(false);
                 using (var connect = new DB_Context())
                 {
                     // 1. Fetch tables into memory
@@ -1379,6 +1513,8 @@ namespace WebApplication1.Controllers
                     connect.unit.Remove(deleteUnit);
                     connect.unit_image.RemoveRange(deleteUnitImage);
                     connect.SaveChanges();
+
+                    AuditLogger.Log("settings", "warning", "Deleted unit: " + deleteUnit.unitName, CurrentUserName());
                 }
                 return Json(new { success = true, message = "Unit Successfully Deleted" });
 
@@ -1400,6 +1536,8 @@ namespace WebApplication1.Controllers
                     connect.tenant.Remove(deleteTenant);
                     connect.tenant_document.RemoveRange(deleteTenantDocu);
                     connect.SaveChanges();
+
+                    AuditLogger.Log("user", "warning", "Deleted tenant: " + deleteTenant.name, CurrentUserName());
                 }
                 return Json(new { success = true, message = "Tenant Successfully Deleted" });
 
@@ -1755,6 +1893,9 @@ namespace WebApplication1.Controllers
                     booking.cancelReason = reason.Trim();
                     connect.SaveChanges();
 
+                    AuditLogger.Log("settings", "warning", "Cancelled booking: " + booking.guestName,
+                        (Session["VisitorName"] as string) ?? email);
+
                     return Json(new { success = true, message = "Booking cancelled successfully." });
                 }
             }
@@ -1791,6 +1932,189 @@ namespace WebApplication1.Controllers
             }
         }
         [HttpGet]
+        public JsonResult GetManagers()
+        {
+            try
+            {
+                using (var connect = new DB_Context())
+                {
+                    var onlineWindow = DateTime.Now.AddMinutes(-5); // "online now" = seen in last 5 min
+
+                    var list = connect.admin
+                        .Where(a => a.role == 1 || a.role == 2)
+                        .ToList() // pull to memory so we can format strings below
+                        .Select(a => new
+                        {
+                            id = a.id,                                   // ← admin PK
+                            name = a.name,
+                            email = a.email,
+                            role = a.role == 1 ? "admin" : "property_manager",
+
+                            // status is NOT stored — derived from lastActive
+                            status = (a.lastActive != null && a.lastActive >= onlineWindow) ? "active" : "inactive",
+
+                            // HTML binds these; no created column, lastLogin = lastActive
+                            createdAt = (string)null,
+                            lastLogin = a.lastActive != null
+                                        ? ((DateTime)a.lastActive).ToString("MMM d, yyyy h:mm tt")
+                                        : null
+                        })
+                        .OrderByDescending(x => x.role == "admin") // admins on top
+                        .ToList();
+
+                    return Json(new { success = true, data = list }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+
+        // ===================== CREATE =====================
+        // POST /System/CreateManager
+        [HttpPost]
+        public JsonResult CreateManager(admin data)
+        {
+            try
+            {
+                if (data == null || string.IsNullOrWhiteSpace(data.name))
+                    return Json(new { success = false, message = "Name is required." });
+                if (string.IsNullOrWhiteSpace(data.email) || !data.email.Contains("@"))
+                    return Json(new { success = false, message = "Valid email is required." });
+                if (string.IsNullOrWhiteSpace(data.password) || data.password.Length < 8)
+                    return Json(new { success = false, message = "Password must be at least 8 characters." });
+
+                using (var connect = new DB_Context())
+                {
+                    string email = data.email.Trim().ToLower();
+
+                    bool exists = connect.admin.Any(a => a.email == email)
+                                  || connect.tenant.Any(t => t.email == email);
+                    if (exists)
+                        return Json(new { success = false, message = "That email is already in use." });
+
+                    var newAdmin = new admin
+                    {
+                        name = data.name.Trim(),
+                        email = email,
+                        password = BCrypt.Net.BCrypt.HashPassword(data.password),   // hashed
+                        role = data.role,
+                        lastActive = null
+                    };
+
+                    connect.admin.Add(newAdmin);
+                    connect.SaveChanges();
+
+                    AuditLogger.Log("user", "info", "Created account: " + newAdmin.name, CurrentUserName());
+                    return Json(new { success = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
+        // ===================== UPDATE =====================
+        // POST /System/UpdateManager
+        [HttpPost]
+        public JsonResult UpdateManager(admin data)
+        {
+            try
+            {
+                if (data == null || data.id <= 0)
+                    return Json(new { success = false, message = "Invalid account." });
+                if (string.IsNullOrWhiteSpace(data.name))
+                    return Json(new { success = false, message = "Name is required." });
+
+                using (var connect = new DB_Context())
+                {
+                    var target = connect.admin.FirstOrDefault(a => a.id == data.id); // ← PK
+                    if (target == null)
+                        return Json(new { success = false, message = "Account not found." });
+
+                    target.name = data.name.Trim();
+
+                    // Protect the admin (role 1): lock email + role changes
+                    if (target.role != 1)
+                    {
+                        string email = data.email.Trim().ToLower();
+                        bool taken = connect.admin.Any(a => a.email == email && a.id != target.id)
+                                     || connect.tenant.Any(t => t.email == email);
+                        if (taken)
+                            return Json(new { success = false, message = "That email is already in use." });
+
+                        target.email = email;
+                        target.role = data.role;
+                    }
+
+                    // Only change password if a new one was typed
+                    if (!string.IsNullOrWhiteSpace(data.password))
+                    {
+                        if (data.password.Length < 8)
+                            return Json(new { success = false, message = "Password must be at least 8 characters." });
+                        target.password = BCrypt.Net.BCrypt.HashPassword(data.password);   // hashed
+                    }
+
+                    connect.SaveChanges();
+                    AuditLogger.Log("user", "info", "Updated account: " + target.name, CurrentUserName());
+                    return Json(new { success = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
+        // ===================== DELETE =====================
+        // POST /System/DeleteManager
+        [HttpPost]
+        public JsonResult DeleteManager(admin data)
+        {
+            try
+            {
+                using (var connect = new DB_Context())
+                {
+                    var target = connect.admin.FirstOrDefault(a => a.id == data.id); // ← PK
+                    if (target == null)
+                        return Json(new { success = false, message = "Account not found." });
+
+                    if (target.role == 1)
+                        return Json(new { success = false, message = "The admin account cannot be deleted." });
+
+                    string name = target.name;
+                    connect.admin.Remove(target);
+                    connect.SaveChanges();
+
+                    AuditLogger.Log("user", "warning", "Deleted account: " + name, CurrentUserName());
+                    return Json(new { success = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
+        // ===================== HELPER =====================
+        // Resolves the logged-in actor's name for audit logging
+        private string CurrentUserName()
+        {
+            string email = Session["VerifyEmail"] as string;
+            if (string.IsNullOrEmpty(email)) return "System";
+            using (var connect = new DB_Context())
+            {
+                var a = connect.admin.FirstOrDefault(x => x.email == email);
+                return a != null ? a.name : email;
+            }
+        }
+        [HttpGet]
         public JsonResult SchedulerStatus()
         {
             return Json(new
@@ -1803,224 +2127,180 @@ namespace WebApplication1.Controllers
             }, JsonRequestBehavior.AllowGet);
         }
 
-        //private const int SMS_COOLDOWN_DAYS = 7;
-        //private const int LEASE_WARN_DAYS = 45;
-        //private const int PAYMENT_WARN_DAYS = 15;
+        // GET /System/GetLookups
+        [HttpGet]
+        public JsonResult GetLookups()
+        {
+            try
+            {
+                using (var connect = new DB_Context())
+                {
+                    var amenities = connect.amenity
+                        .OrderBy(a => a.name)
+                        .Select(a => a.name)
+                        .ToList();
 
-        //public JsonResult RunSmsNotifications(bool dryRun = true)
-        //{
-        //    try
-        //    {
-        //        using (var connect = new DB_Context())
-        //        {
-        //            var today = DateTime.Today;
-        //            var leaseCutoff = today.AddDays(LEASE_WARN_DAYS);
-        //            var paymentCutoff = today.AddDays(PAYMENT_WARN_DAYS);
-        //            var cooldownSince = DateTime.Now.AddDays(-SMS_COOLDOWN_DAYS);
+                    var occupancyTypes = connect.occupancy_type
+                        .OrderBy(o => o.occupancyType)
+                        .Select(o => o.occupancyType)
+                        .ToList();
 
-        //            var results = new List<object>();
+                    var data = new[]
+                    {
+                new {
+                    id          = "amenity",
+                    name        = "Amenities",
+                    description = "Features and facilities available in units.",
+                    items       = amenities
+                },
+                new {
+                    id          = "occupancy_type",
+                    name        = "Occupancy Types",
+                    description = "Occupancy categories used for tenants and units.",
+                    items       = occupancyTypes
+                }
+            };
 
-        //            // Recently notified, so we can skip duplicates
-        //            var recent = connect.sms_log
-        //            .Where(s => s.sentAt >= cooldownSince)
-        //            .Select(s => new { s.Tid, s.type })
-        //            .ToList();
-
-        //            // ------------------------------------------------------------
-        //            // 1. LEASES EXPIRING WITHIN 45 DAYS
-        //            // ------------------------------------------------------------
-        //            var expiring = connect.tenant
-        //                .Where(t => t.isTerminated != 1
-        //                            && t.leaseEnd >= today
-        //                            && t.leaseEnd <= leaseCutoff)
-        //                .ToList();
-
-        //            foreach (var t in expiring)
-        //            {
-        //                if (recent.Any(r => r.Tid == t.Tid && r.type == "Lease Expiry"))
-        //                {
-        //                    results.Add(Skipped(t.name, "Lease Expiry", "Already notified recently"));
-        //                    continue;
-        //                }
-
-        //                int daysLeft = (int)(t.leaseEnd - today).TotalDays;
-
-        //                string message =
-        //                    $"Hi {t.name}, your lease at Green Residences ends on " +
-        //                    $"{t.leaseEnd:MMM dd, yyyy} ({daysLeft} day{(daysLeft == 1 ? "" : "s")} left). " +
-        //                    "Please contact the office to renew. Thank you!";
-
-        //                results.Add(Dispatch(connect, t.Tid, t.name, t.phone, "Lease Expiry", message, dryRun));
-        //            }
-
-        //            // ------------------------------------------------------------
-        //            // 2. PAYMENTS DUE WITHIN 15 DAYS (still unpaid)
-        //            // ------------------------------------------------------------
-        //            var dueSoon = (from p in connect.payment
-        //                           join t in connect.tenant on p.Tid equals t.Tid
-        //                           where p.paidDate == null
-        //                                 && p.dueDate >= today
-        //                                 && p.dueDate <= paymentCutoff
-        //                                 && t.isTerminated != 1
-        //                           select new { p, t })
-        //                          .ToList();
-
-        //            foreach (var row in dueSoon)
-        //            {
-        //                if (recent.Any(r => r.Tid == row.t.Tid && r.type == "Payment Due"))
-        //                {
-        //                    results.Add(Skipped(row.t.name, "Payment Due", "Already notified recently"));
-        //                    continue;
-        //                }
-
-        //                int daysLeft = (int)(row.p.dueDate - today).TotalDays;
-
-        //                string message =
-        //                    $"Hi {row.t.name}, your rent of PHP {row.p.amount:N2} for " +
-        //                    $"{row.p.billingPeriod} is due on {row.p.dueDate:MMM dd, yyyy} " +
-        //                    $"({daysLeft} day{(daysLeft == 1 ? "" : "s")} left). " +
-        //                    "Please settle on or before the due date. Thank you!";
-
-        //                results.Add(Dispatch(connect, row.t.Tid, row.t.name, row.t.phone, "Payment Due", message, dryRun));
-        //            }
-
-        //            connect.SaveChanges();
-
-        //            return Json(new
-        //            {
-        //                success = true,
-        //                dryRun = dryRun,
-        //                scanned = new
-        //                {
-        //                    expiringLeases = expiring.Count,
-        //                    duePayments = dueSoon.Count
-        //                },
-        //                results = results
-        //            });
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return Json(new { success = false, message = ex.Message });
-        //    }
-        //}
+                    return Json(new { success = true, data = data }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
 
 
-        //// Builds the log row and, when not a dry run, actually sends.
-        //private object Dispatch(DB_Context connect, int tid, string name, string rawPhone,
-        //                        string type, string message, bool dryRun)
-        //{
-        //    string phone = SmsServices.NormalizePhone(rawPhone);
+        // POST /System/AddLookupItem
+        [HttpPost]
+        public JsonResult AddLookupItem(LookupItemDTO data)
+        {
+            try
+            {
+                if (data == null || string.IsNullOrWhiteSpace(data.value))
+                    return Json(new { success = false, message = "Value is required." });
 
-        //    if (phone == null)
-        //    {
-        //        var badLog = new sms_log
-        //        {
-        //            Tid = tid,
-        //            message = message,
-        //            type = type,
-        //            status = "Invalid Number",
-        //            sentAt = DateTime.Now
-        //        };
-        //        connect.sms_log.Add(badLog);
+                string value = data.value.Trim();
+                string label;
 
-        //        return new
-        //        {
-        //            tenant = name,
-        //            phone = rawPhone,
-        //            type = type,
-        //            status = "Invalid Number",
-        //            message = message
-        //        };
-        //    }
+                using (var connect = new DB_Context())
+                {
+                    switch (data.key)
+                    {
+                        case "amenity":
+                            if (connect.amenity.Any(a => a.name == value))
+                                return Json(new { success = false, message = "That amenity already exists." });
+                            connect.amenity.Add(new amenity { name = value });
+                            label = "Amenities";
+                            break;
 
-        //    string status;
-        //    string error = null;
+                        case "occupancy_type":
+                            if (connect.occupancy_type.Any(o => o.occupancyType == value))
+                                return Json(new { success = false, message = "That occupancy type already exists." });
+                            connect.occupancy_type.Add(new occupancy_type { occupancyType = value });
+                            label = "Occupancy Types";
+                            break;
 
-        //    if (dryRun)
-        //    {
-        //        status = "Preview";
-        //    }
-        //    else
-        //    {
-        //        error = SmsServices.SendSms(phone, message);
-        //        status = (error == null) ? "Sent" : "Failed";
-        //    }
+                        default:
+                            return Json(new { success = false, message = "Unknown lookup table." });
+                    }
 
-        //    var log = new sms_log
-        //    {
-        //        Tid = tid,
-        //        message = message,
-        //        type = type,
-        //        status = status,
-        //        sentAt = DateTime.Now
-        //    };
-        //    connect.sms_log.Add(log);
-
-        //    return new
-        //    {
-        //        tenant = name,
-        //        phone = phone,
-        //        type = type,
-        //        status = status,
-        //        error = error,
-        //        message = message
-        //    };
-        //}
+                    connect.SaveChanges();
+                    AuditLogger.Log("settings", "info", "Added \"" + value + "\" to " + label, CurrentUserName());
+                    return Json(new { success = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
 
 
-        //private object Skipped(string name, string type, string why)
-        //{
-        //    return new
-        //    {
-        //        tenant = name,
-        //        phone = (string)null,
-        //        type = type,
-        //        status = "Skipped",
-        //        error = why,
-        //        message = (string)null
-        //    };
-        //}
+        // POST /System/RemoveLookupItem
+        [HttpPost]
+        public JsonResult RemoveLookupItem(LookupItemDTO data)
+        {
+            try
+            {
+                if (data == null || string.IsNullOrWhiteSpace(data.value))
+                    return Json(new { success = false, message = "Value is required." });
 
+                string value = data.value.Trim();
+                string label;
 
-        //// ============================================================
-        //// LOG VIEWER
-        //// ============================================================
-        //[HttpGet]
-        //public JsonResult GetSmsLogs()
-        //{
-        //    try
-        //    {
-        //        using (var connect = new DB_Context())
-        //        {
-        //            var logs = (from s in connect.sms_log
-        //                        join t in connect.tenant on s.Tid equals t.Tid into g
-        //                        from t in g.DefaultIfEmpty()
-        //                        select new { s, tenantName = t != null ? t.name : "(unknown)" })
-        //                       .ToList()
-        //                       .OrderByDescending(x => x.s.sentAt)
-        //                       .Take(100)
-        //                       .Select(x => new
-        //                       {
-        //                           id = x.s.id,
-        //                           tenantName = x.tenantName,
-        //                           type = x.s.type,
-        //                           status = x.s.status,
-        //                           message = x.s.message,
-        //                           sentAt = x.s.sentAt.ToString("MMM dd, yyyy h:mm tt")
-        //                       })
-        //                       .ToList();
+                using (var connect = new DB_Context())
+                {
+                    switch (data.key)
+                    {
+                        case "amenity":
+                            var am = connect.amenity.FirstOrDefault(a => a.name == value);
+                            if (am == null) return Json(new { success = false, message = "Item not found." });
+                            connect.amenity.Remove(am);
+                            label = "Amenities";
+                            break;
 
-        //            return Json(new { success = true, data = logs }, JsonRequestBehavior.AllowGet);
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return Json(new { success = false, message = ex.Message },
-        //                    JsonRequestBehavior.AllowGet);
-        //    }
-        //}
+                        case "occupancy_type":
+                            var ot = connect.occupancy_type.FirstOrDefault(o => o.occupancyType == value);
+                            if (ot == null) return Json(new { success = false, message = "Item not found." });
+                            connect.occupancy_type.Remove(ot);
+                            label = "Occupancy Types";
+                            break;
+
+                        default:
+                            return Json(new { success = false, message = "Unknown lookup table." });
+                    }
+
+                    connect.SaveChanges();
+                    AuditLogger.Log("settings", "warning", "Removed \"" + value + "\" from " + label, CurrentUserName());
+                    return Json(new { success = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+        [HttpGet]
+        public JsonResult GetAuditLogs()
+        {
+            try
+            {
+                using (var connect = new DB_Context())
+                {
+                    // Newest first; cap so the page stays fast
+                    var logs = connect.audit_log
+                        .OrderByDescending(x => x.createdAt)
+                        .Take(500)
+                        .ToList()  // to memory so we can format dates below
+                        .Select(x => new
+                        {
+                            id = x.logId,
+                            type = x.type,
+                            message = x.message,
+                            actor = x.actor,
+                            ip = (string)null,   // not stored; view hides it when empty
+                            date = x.createdAt.ToString("MMM d, yyyy"),
+                            time = x.createdAt.ToString("h:mm tt")
+                        })
+                        .ToList();
+
+                    // Per-type totals for the 5 stat cards (whole table, not just the 500)
+                    var counts = connect.audit_log
+                        .GroupBy(x => x.type)
+                        .Select(g => new { type = g.Key, count = g.Count() })
+                        .ToList()
+                        .ToDictionary(g => g.type, g => g.count);
+
+                    return Json(new { success = true, data = logs, counts = counts },
+                                JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message },
+                            JsonRequestBehavior.AllowGet);
+            }
+        }
     }
 }
-
-    

@@ -17,6 +17,8 @@
     <WebStackScaffolding_IsReferencingScriptLibrariesSelected>True</WebStackScaffolding_IsReferencingScriptLibrariesSelected>
     <WebStackScaffolding_LayoutPageFile />
     <WebStackScaffolding_IsAsyncSelected>False</WebStackScaffolding_IsAsyncSelected>
+    <ProjectView>ShowAllFiles</ProjectView>
+    <NameOfLastUsedPublishProfile>C:\Users\Aldwin Florante\Desktop\folder3\Bigtime-main\WebApplication1\Properties\PublishProfiles\FolderProfile.pubxml</NameOfLastUsedPublishProfile>
   </PropertyGroup>
   <ProjectExtensions>
     <VisualStudio>

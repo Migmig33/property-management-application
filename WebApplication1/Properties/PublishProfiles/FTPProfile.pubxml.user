@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://go.microsoft.com/fwlink/?LinkID=208121. -->
+<Project>
+  <PropertyGroup>
+    <TimeStampOfAssociatedLegacyPublishXmlFile />
+    <EncryptedPassword>AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAA8fkrLtahO0WWJbt9ODVgEQAAAAACAAAAAAAQZgAAAAEAACAAAAB1NkhG8jXHT+aCZcpuCJr9bN3aKyzoFf/3izyEJgOo+gAAAAAOgAAAAAIAACAAAABsv3+mooJ4BNjOzMY1dRicZEJs78+3gMcA9jPiNAr6fCAAAACDEdUTP+XL21N34cbxc9B+kYXguMnBG4foumfH7ML+6UAAAAAJldZIK+0qEuf2XeM31sHJko+6i3R9yWGLfaxKZtIaXA2t9kdZW1dBTdi3jy2awnzU9tkd2xvIWsVkd/PHb8lR</EncryptedPassword>
+    <_PublishTargetUrl>ftp://site88161.siteasp.net/wwwroot</_PublishTargetUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <File Include="Assets/bg.jpg">
+      <publishTime>08/24/2026 12:20:30</publishTime>
+    </File>
+    <File Include="bin/Antlr3.Runtime.dll">
+      <publishTime>08/24/2026 12:20:17</publishTime>
+    </File>
+    <File Include="bin/AWSSDK.Core.dll">
+      <publishTime>08/24/2026 12:20:17</publishTime>
+    </File>
+    <File Include="bin/AWSSDK.SimpleNotificationService.dll">
+      <publishTime>08/24/2026 12:20:17</publishTime>
+    </File>
+    <File Include="bin/BCrypt-Net-Next.dll">
+      <publishTime>05/11/2026 19:04:00</publishTime>
+    </File>
+    <File Include="bin/BouncyCastle.Crypto.dll">
+      <publishTime>08/24/2026 12:20:18</publishTime>
+    </File>
+    <File Include="bin/BouncyCastle.Cryptography.dll">
+      <publishTime>07/31/2025 19:19:54</publishTime>
+    </File>
+    <File Include="favicon.ico">
+      <publishTime>08/24/2026 12:20:30</publishTime>
+    </File>
+    <File Include="Global.asax">
+      <publishTime>08/24/2026 12:20:30</publishTime>
+    </File>
+    <File Include="Web.config">
+      <publishTime>08/29/2026 15:44:41</publishTime>
+    </File>
+  </ItemGroup>
+</Project>

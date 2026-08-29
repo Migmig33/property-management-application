@@ -4,6 +4,8 @@ using System.Linq;
 using System.Web;
 using System.Web.Helpers;
 using System.Web.Mvc;
+using WebApplication1.Filter;
+using WebApplication1.Helper;
 using WebApplication1.Models;
 using WebApplication1.Models.Context;
 using WebApplication1.Models.Tables;
@@ -11,51 +13,78 @@ using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
+    [RateLimit(sec = 10, requests = 5)]
+
     public class AuthController : Controller
     {
         // GET: Auth
+        private bool VerifyPassword(string entered, string stored, out bool needsUpgrade)
+        {
+            needsUpgrade = false;
+            if (string.IsNullOrEmpty(stored)) return false;
+
+            if (stored.StartsWith("$2"))   // BCrypt hashes start with $2a$/$2b$/$2y$
+                return BCrypt.Net.BCrypt.Verify(entered, stored);
+
+            // Legacy plaintext row
+            if (entered == stored) { needsUpgrade = true; return true; }
+            return false;
+        }
         public JsonResult Login(LoginModelDTO data)
         {
             try
             {
                 using (var connect = new DB_Context())
                 {
-                    // Check admin table first
-                    var admin = connect.admin.Where(x =>
-                        x.email == data.email &&
-                        x.password == data.password
-                    ).FirstOrDefault();
-
-                    if (admin != null)
+                    // ---- Admin / Property Manager (both in admin table) ----
+                    var admin = connect.admin.FirstOrDefault(x => x.email == data.email);
+                    if (admin != null && (admin.role == 1 || admin.role == 2))
                     {
-                        string code = new Random().Next(100000, 999999).ToString();
-                        Session["VerificationCode"] = code;
-                        Session["VerifyEmail"] = data.email;
-                        Session["VerifyExpiry"] = DateTime.Now.AddMinutes(5);
-                        Session["UserRole"] = 1; // Admin
-                        EmailServices.SendEmailVerification(data.email, code);
-                        TempData["Email"] = data.email;
-                        return Json(new { success = true, role = 1, message = "Verification code sent to " + data.email }, JsonRequestBehavior.AllowGet);
+                        bool upgrade;
+                        if (VerifyPassword(data.password, admin.password, out upgrade))
+                        {
+                            if (upgrade)
+                            {
+                                admin.password = BCrypt.Net.BCrypt.HashPassword(data.password);
+                                connect.SaveChanges();
+                            }
+
+                            string code = new Random().Next(100000, 999999).ToString();
+                            Session["VerificationCode"] = code;
+                            Session["VerifyEmail"] = data.email;
+                            Session["VerifyExpiry"] = DateTime.Now.AddMinutes(5);
+                            Session["UserRole"] = admin.role;   // 1 or 2
+                            EmailServices.SendEmailVerification(data.email, code);
+                            TempData["Email"] = data.email;
+                            return Json(new { success = true, role = admin.role, message = "Verification code sent to " + data.email }, JsonRequestBehavior.AllowGet);
+                        }
                     }
 
-                    // Check tenant table
-                    var tenant = connect.tenant.Where(x =>
-                        x.email == data.email &&
-                        x.passwordHash == data.password
-                    ).FirstOrDefault();
-
+                    // ---- Tenant ----
+                    var tenant = connect.tenant.FirstOrDefault(x => x.email == data.email);
                     if (tenant != null)
                     {
-                        string code = new Random().Next(100000, 999999).ToString();
-                        Session["VerificationCode"] = code;
-                        Session["VerifyEmail"] = data.email;
-                        Session["VerifyExpiry"] = DateTime.Now.AddMinutes(5);
-                        Session["UserRole"] = 2; // Tenant
-                        EmailServices.SendEmailVerification(data.email, code);
-                        TempData["Email"] = data.email;
-                        return Json(new { success = true, role = 2, message = "Verification code sent to " + data.email }, JsonRequestBehavior.AllowGet);
+                        bool upgrade;
+                        if (VerifyPassword(data.password, tenant.passwordHash, out upgrade))
+                        {
+                            if (upgrade)
+                            {
+                                tenant.passwordHash = BCrypt.Net.BCrypt.HashPassword(data.password);
+                                connect.SaveChanges();
+                            }
+
+                            string code = new Random().Next(100000, 999999).ToString();
+                            Session["VerificationCode"] = code;
+                            Session["VerifyEmail"] = data.email;
+                            Session["VerifyExpiry"] = DateTime.Now.AddMinutes(5);
+                            Session["UserRole"] = 3; // Tenant
+                            EmailServices.SendEmailVerification(data.email, code);
+                            TempData["Email"] = data.email;
+                            return Json(new { success = true, role = 3, message = "Verification code sent to " + data.email }, JsonRequestBehavior.AllowGet);
+                        }
                     }
 
+                    AuditLogger.Log("security", "warning", "Failed login attempt for " + data.email, data.email);
                     return Json(new { success = false, message = "User not found." }, JsonRequestBehavior.AllowGet);
                 }
             }
@@ -63,6 +92,13 @@ namespace WebApplication1.Controllers
             {
                 return Json(new { success = false, message = ErrorHandling(ex) }, JsonRequestBehavior.AllowGet);
             }
+        }
+        [HttpPost]
+        public JsonResult Logout()
+        {
+            Session.Clear();
+            Session.Abandon();
+            return Json(new { success = true });
         }
         public JsonResult VerifyCode(verifycode data)
         {
@@ -82,9 +118,37 @@ namespace WebApplication1.Controllers
 
                 Session["IsAuthenticated"] = true;
 
-                // ✅ Set LoggedInTid so TenantPortal can identify the user
                 int userRole = Convert.ToInt32(Session["UserRole"]);
-                if (userRole == 2)
+
+                // + lastActive: stamp on successful sign-in and grab the display name for the audit log
+                string verifyEmail = Session["VerifyEmail"] as string;
+                string actorName = verifyEmail;
+                using (var connect = new DB_Context())
+                {
+                    if (userRole == 1 || userRole == 2) // admin / PM (admin table)
+                    {
+                        var loginUser = connect.admin.FirstOrDefault(x => x.email == verifyEmail);
+                        if (loginUser != null)
+                        {
+                            loginUser.lastActive = DateTime.Now;
+                            actorName = loginUser.name;
+                            connect.SaveChanges();
+                        }
+                    }
+                    else if (userRole == 3) // tenant
+                    {
+                        var loginTenant = connect.tenant.FirstOrDefault(x => x.email == verifyEmail);
+                        if (loginTenant != null)
+                        {
+                            loginTenant.lastActive = DateTime.Now;
+                            actorName = loginTenant.name;
+                            connect.SaveChanges();
+                        }
+                    }
+                }
+
+                // ✅ Set LoggedInTid so TenantPortal can identify the user
+                if (userRole == 3)
                 {
                     string email = Session["VerifyEmail"] as string;
                     using (var connect = new DB_Context())
@@ -102,6 +166,8 @@ namespace WebApplication1.Controllers
                         }
                     }
                 }
+
+                AuditLogger.Log("login", "info", "Signed in", actorName); // + AUDIT
 
                 return Json(new { success = true, role = userRole }, JsonRequestBehavior.AllowGet);
             }
@@ -395,7 +461,227 @@ namespace WebApplication1.Controllers
         }
 
 
+        [HttpPost]
+        public JsonResult SendResetCode(string email)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(email))
+                    return Json(new { success = false, message = "Please enter your email address." },
+                                JsonRequestBehavior.AllowGet);
 
+                email = email.Trim();
+
+                using (var connect = new DB_Context())
+                {
+                    int role = 0;
+
+                    var admin = connect.admin.FirstOrDefault(x => x.email == email);
+                    if (admin != null)
+                    {
+                        role = 1;
+                    }
+                    else
+                    {
+                        var tenant = connect.tenant.FirstOrDefault(x => x.email == email);
+                        if (tenant != null) role = 2;
+                    }
+
+                    if (role == 0)
+                        return Json(new { success = false, message = "No account found with this email address." },
+                                    JsonRequestBehavior.AllowGet);
+
+                    string code = new Random().Next(100000, 999999).ToString();
+
+                    Session["ResetCode"] = code;
+                    Session["ResetExpiry"] = DateTime.Now.AddMinutes(5);
+                    Session["ResetEmail"] = email;
+                    Session["ResetRole"] = role;
+                    Session["ResetVerified"] = false;
+
+                    EmailServices.SendEmailVerification(email, code);
+
+                    return Json(new { success = true, message = "Reset code sent to " + email },
+                                JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ErrorHandling(ex) },
+                            JsonRequestBehavior.AllowGet);
+            }
+        }
+
+
+        [HttpPost]
+        public JsonResult VerifyResetCode(string code)
+        {
+            try
+            {
+                string savedCode = Session["ResetCode"] as string;
+                DateTime? expiry = Session["ResetExpiry"] as DateTime?;
+
+                if (savedCode == null || expiry == null)
+                    return Json(new { success = false, message = "Session Expired" },
+                                JsonRequestBehavior.AllowGet);
+
+                if (DateTime.Now > expiry)
+                    return Json(new { success = false, message = "Code Has Expired" },
+                                JsonRequestBehavior.AllowGet);
+
+                if (code != savedCode)
+                    return Json(new { success = false, message = "Incorrect code. Please try again." },
+                                JsonRequestBehavior.AllowGet);
+
+                // Passing the code is what unlocks ResetPassword
+                Session["ResetVerified"] = true;
+                Session["ResetCode"] = null;
+
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ErrorHandling(ex) },
+                            JsonRequestBehavior.AllowGet);
+            }
+        }
+
+
+        [HttpPost]
+        public JsonResult ResetPassword(string newPassword)
+        {
+            try
+            {
+                bool verified = Session["ResetVerified"] != null && (bool)Session["ResetVerified"];
+                if (!verified)
+                    return Json(new { success = false, message = "Please verify your code first." }, JsonRequestBehavior.AllowGet);
+
+                DateTime? expiry = Session["ResetExpiry"] as DateTime?;
+                if (expiry == null || DateTime.Now > expiry)
+                    return Json(new { success = false, message = "Reset session expired. Please start again." }, JsonRequestBehavior.AllowGet);
+
+                if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+                    return Json(new { success = false, message = "Password must be at least 8 characters." }, JsonRequestBehavior.AllowGet);
+
+                string email = Session["ResetEmail"] as string;
+                int role = Convert.ToInt32(Session["ResetRole"]);
+
+                using (var connect = new DB_Context())
+                {
+                    if (role == 1)
+                    {
+                        var admin = connect.admin.FirstOrDefault(x => x.email == email);
+                        if (admin == null)
+                            return Json(new { success = false, message = "Account not found." }, JsonRequestBehavior.AllowGet);
+
+                        admin.password = BCrypt.Net.BCrypt.HashPassword(newPassword);   // hashed
+                    }
+                    else
+                    {
+                        var tenant = connect.tenant.FirstOrDefault(x => x.email == email);
+                        if (tenant == null)
+                            return Json(new { success = false, message = "Account not found." }, JsonRequestBehavior.AllowGet);
+
+                        tenant.passwordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);   // hashed
+                    }
+
+                    connect.SaveChanges();
+                }
+
+                AuditLogger.Log("security", "info", "Password reset", email);
+
+                Session["ResetVerified"] = null;
+                Session["ResetEmail"] = null;
+                Session["ResetRole"] = null;
+                Session["ResetExpiry"] = null;
+
+                return Json(new { success = true, message = "Password updated. You can now sign in." }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ErrorHandling(ex) }, JsonRequestBehavior.AllowGet);
+            }
+        }
+        // ============================================================
+        // 7. CHECK ACTIVE USER & UPDATE HEARTBEAT
+        // ============================================================
+        [HttpGet]
+        public JsonResult CheckActiveUser()
+        {
+            try
+            {
+                // 1. Check if they have a valid authenticated session
+                if (Session["IsAuthenticated"] == null || !(bool)Session["IsAuthenticated"])
+                {
+                    return Json(new { isAuthenticated = false, message = "No active session." }, JsonRequestBehavior.AllowGet);
+                }
+
+                int role = Convert.ToInt32(Session["UserRole"]);
+                string email = Session["VerifyEmail"] as string;
+
+                if (string.IsNullOrEmpty(email))
+                {
+                    Session.Clear();
+                    return Json(new { isAuthenticated = false, message = "Session invalid." }, JsonRequestBehavior.AllowGet);
+                }
+
+                using (var connect = new DB_Context())
+                {
+                    if (role == 1 || role == 2) // Admin
+                    {
+                        var admin = connect.admin.FirstOrDefault(x => x.email == email);
+
+                        // Check if account exists (status check removed)
+                        if (admin == null)
+                        {
+                            Session.Clear();
+                            Session.Abandon();
+                            return Json(new { isAuthenticated = false, message = "Account not found." }, JsonRequestBehavior.AllowGet);
+                        }
+
+                        // Update the heartbeat timestamp
+                        admin.lastActive = DateTime.Now;
+                        connect.SaveChanges();
+
+                        return Json(new
+                        {
+                            isAuthenticated = true,
+                            role = role,
+                            user = new { name = admin.name, email = admin.email }
+                        }, JsonRequestBehavior.AllowGet);
+                    }
+                    else if (role == 3) // Tenant
+                    {
+                        var tenant = connect.tenant.FirstOrDefault(x => x.email == email);
+
+                        // Check if account exists (status check removed)
+                        if (tenant == null)
+                        {
+                            Session.Clear();
+                            Session.Abandon();
+                            return Json(new { isAuthenticated = false, message = "Account not found." }, JsonRequestBehavior.AllowGet);
+                        }
+
+                        // Update the heartbeat timestamp
+                        tenant.lastActive = DateTime.Now;
+                        connect.SaveChanges();
+
+                        return Json(new
+                        {
+                            isAuthenticated = true,
+                            role = role,
+                            user = new { name = tenant.name, email = tenant.email, tid = tenant.Tid }
+                        }, JsonRequestBehavior.AllowGet);
+                    }
+
+                    return Json(new { isAuthenticated = false, message = "Unknown role." }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { isAuthenticated = false, message = ErrorHandling(ex) }, JsonRequestBehavior.AllowGet);
+            }
+        }
         public string ErrorHandling(Exception ex)
         {
             var errorMessage = $@"

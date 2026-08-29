@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using WebApplication1.Filter;
 using WebApplication1.Models.Context;
 using WebApplication1.Models.Tables;
 
 namespace WebApplication1.Controllers
 {
+    [RateLimit(sec = 10, requests = 5)]
+
     public class TenantPortalController : Controller
     {
             [HttpGet]

@@ -22,6 +22,7 @@ namespace WebApplication1.Models.Tables
         public int occupancyTypeId{ get; set; }
         public int isTerminated { get; set; }
         public List<int> deletedCoOccupants { get; set; }
+        public DateTime? lastActive { get; set; }
 
     }
 }

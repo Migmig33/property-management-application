@@ -1,0 +1,1 @@
+﻿var tenantApp = angular.module('TenantPortal', []);

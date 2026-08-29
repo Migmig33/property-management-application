@@ -23,10 +23,11 @@ namespace WebApplication1.Models
         public string slot { get; set; }   // "08:00 AM"
         public string notes { get; set; }
     }
-    public class IdFileDto
+  
+    public class LookupItemDTO
     {
-        public int id { get; set; }
-        public string name { get; set; }
-        public string url { get; set; }
+        public string key { get; set; }
+        public string value { get; set; }
     }
+
 }
