@@ -12,4 +12,9 @@ namespace WebApplication1.Models.Tables
         public int Uid { get; set; }
 
     }
+    public class AmenityDTO
+    {
+        public int id { get; set; }
+        public string name { get; set; }
+    }
 }

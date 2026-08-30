@@ -132,6 +132,7 @@
     <Reference Include="System.Numerics.Vectors, Version=4.1.6.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Numerics.Vectors.4.6.1\lib\net462\System.Numerics.Vectors.dll</HintPath>
     </Reference>
+    <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.1.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
@@ -229,6 +230,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Helper\AuditLogger.cs" />
+    <Compile Include="Helper\CacheHelper.cs" />
     <Compile Include="Models\Context\DB_Context.cs" />
     <Compile Include="Models\LoginModelDTO.cs" />
     <Compile Include="Models\Maps\admin_maps.cs" />
@@ -238,7 +240,6 @@
     <Compile Include="Models\Maps\busy_schedule_maps.cs" />
     <Compile Include="Models\Maps\co_occupant_maps.cs" />
     <Compile Include="Models\Maps\maintenance_request_maps.cs" />
-    <Compile Include="Models\Maps\occupancy_type_maps.cs" />
     <Compile Include="Models\Maps\payment_maps.cs" />
     <Compile Include="Models\Maps\tenant_document_maps.cs" />
     <Compile Include="Models\Maps\tenant_maps.cs" />
@@ -253,7 +254,6 @@
     <Compile Include="Models\Tables\co_occupant.cs" />
     <Compile Include="Models\Tables\IdFileDto.cs" />
     <Compile Include="Models\Tables\maintenance_request.cs" />
-    <Compile Include="Models\Tables\occupancy_type.cs" />
     <Compile Include="Models\Tables\payment.cs" />
     <Compile Include="Models\Tables\sms_log.cs" />
     <Compile Include="Models\Tables\tenant.cs" />

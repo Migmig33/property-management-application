@@ -3,7 +3,7 @@
 }
 
 <!-- Initialize loading state immediately alongside the API call -->
-<div class="min-h-screen bg-slate-50" ng-init="isLoading = true; getAllBrowseUnits()">
+<div class="min-h-screen bg-slate-50" ng-init="isLoading = true; getAllBrowseUnits(); currentPage = 'Browse';">
 
     <!-- Banner -->
     <div ng-if="!bannerDismissed" class="bg-gradient-to-r from-green-600 to-green-700 overflow-hidden transition-all duration-300">

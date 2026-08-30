@@ -1,5 +1,4 @@
 ﻿app.controller('controller', function (service, $scope, $timeout, $interval, $http, $sce, $window) {
-
     $scope.initDashboard = function () {
         $scope.isLoading = true;
 
@@ -449,7 +448,7 @@
         });
     };
 
-    function loadAllAmenities() {
+    $scope.loadAllAmenities = function() {
         $http.get('/System/GetAllAmenities').then(function (response) {
             if (response.data.success) {
                 $scope.amenityOptions = response.data.data.map(function (amenity) {
@@ -462,7 +461,7 @@
             }
         });
     }
-    loadAllAmenities();
+    
 
     // ==========================================
     // 6. UNIT MANAGEMENT (CRUD & Filters)
@@ -3086,58 +3085,44 @@
     // Status = live presence, so there's nothing to toggle. No-op keeps the button harmless.
     $scope.handleToggleStatus = function (m) { /* no-op */ };
 
-    // ================= Lookup Tables page =================
-    $scope.lookups = [];
-    $scope.expanded = null;
-    $scope.newItems = {};
+    $scope.amenities = [];
+    $scope.newAmenity = '';
+    $scope.isLoading = true;
 
     $scope.initLookup = function () {
         $scope.isLoading = true;
-        service.GetLookupsService().then(function (res) {
+        service.GetAllAmenitiesService().then(function (res) {
             if (res.data && res.data.success) {
-                $scope.lookups = res.data.data || [];
+                $scope.amenities = res.data.data || [];
             }
         }).finally(function () {
             $scope.isLoading = false;
         });
     };
 
-    $scope.toggle = function (id) {
-        $scope.expanded = ($scope.expanded === id) ? null : id;
-    };
-
-    $scope.getTotalItems = function () {
-        return ($scope.lookups || []).reduce(function (sum, t) {
-            return sum + (t.items ? t.items.length : 0);
-        }, 0);
-    };
-
-    $scope.addItem = function (tableId) {
-        var value = ($scope.newItems[tableId] || '').trim();
+    $scope.addItem = function () {
+        var value = ($scope.newAmenity || '').trim();
         if (!value) return;
 
-        var table = $scope.lookups.find(function (t) { return t.id === tableId; });
-        if (table && table.items.indexOf(value) !== -1) {
-            $scope.newItems[tableId] = '';   // already there, ignore
-            return;
-        }
+        // avoid obvious duplicate before hitting the server
+        var exists = $scope.amenities.some(function (a) {
+            return a.name.toLowerCase() === value.toLowerCase();
+        });
+        if (exists) { $scope.newAmenity = ''; return; }
 
-        service.AddLookupItemService({ key: tableId, value: value }).then(function (res) {
+        service.AddAmenityService({ name: value }).then(function (res) {
             if (res.data && res.data.success) {
-                if (table) table.items.push(value);
-                $scope.newItems[tableId] = '';
+                $scope.amenities.push({ id: res.data.id, name: res.data.name });
+                $scope.newAmenity = '';
             }
         });
     };
 
-    $scope.removeItem = function (tableId, item) {
-        service.RemoveLookupItemService({ key: tableId, value: item }).then(function (res) {
+    $scope.removeItem = function (amenity) {
+        service.DeleteAmenityService({ id: amenity.id }).then(function (res) {
             if (res.data && res.data.success) {
-                var table = $scope.lookups.find(function (t) { return t.id === tableId; });
-                if (table) {
-                    var i = table.items.indexOf(item);
-                    if (i !== -1) table.items.splice(i, 1);
-                }
+                var i = $scope.amenities.indexOf(amenity);
+                if (i !== -1) $scope.amenities.splice(i, 1);
             }
         });
     };

@@ -24,10 +24,6 @@ namespace WebApplication1.Models
         public string notes { get; set; }
     }
   
-    public class LookupItemDTO
-    {
-        public string key { get; set; }
-        public string value { get; set; }
-    }
+    
 
 }

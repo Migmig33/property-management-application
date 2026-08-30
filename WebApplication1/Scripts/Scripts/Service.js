@@ -10,6 +10,9 @@
         })
         return response;
     }
+    this.GetAllAmenitiesService = function () {
+        return $http({ method: 'get', url: '/System/GetAllAmenities' });
+    }
     this.verifyCodeService = function (code) {
         var response = $http({
             url: "/Auth/VerifyCode",
@@ -176,30 +179,7 @@
             headers: { "Content-Type": "application/json" }
         });
     }
-    this.GetLookupsService = function () {
-        return $http({
-            method: 'get',
-            url: '/System/GetLookups'
-        });
-    }
-
-    this.AddLookupItemService = function (payload) {
-        return $http({
-            method: 'post',
-            url: '/System/AddLookupItem',
-            data: payload,
-            headers: { "Content-Type": "application/json" }
-        });
-    }
-
-    this.RemoveLookupItemService = function (payload) {
-        return $http({
-            method: 'post',
-            url: '/System/RemoveLookupItem',
-            data: payload,
-            headers: { "Content-Type": "application/json" }
-        });
-    }
+   
     //Get service
     this.GetDashboardDataService = function () {
         return $http.get('/System/GetDashboardData');
@@ -233,6 +213,13 @@
         });
     };
 
+    this.AddAmenityService = function (payload) {
+        return $http({ method: 'post', url: '/System/AddAmenity', data: payload, headers: { "Content-Type": "application/json" } });
+    }
+
+    this.DeleteAmenityService = function (payload) {
+        return $http({ method: 'post', url: '/System/DeleteAmenity', data: payload, headers: { "Content-Type": "application/json" } });
+    }
 
     //Delete Service
     this.DeleteUnitService = function (id) {

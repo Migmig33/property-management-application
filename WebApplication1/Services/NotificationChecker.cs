@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
+using WebApplication1.Helper;
 using WebApplication1.Models.Context;
 using WebApplication1.Models.Tables;
 
@@ -59,6 +60,9 @@ namespace WebApplication1.Services
                                     && t.leaseEnd <= leaseCutoff)
                         .ToList();
 
+                    var pms = connect.admin
+                        .Where(a => a.role == 2).ToList();
+
                     run.expiringLeases = expiring.Count;
 
                     foreach (var t in expiring)
@@ -78,7 +82,32 @@ namespace WebApplication1.Services
 
                         run.results.Add(Dispatch(connect, t.Tid, t.name, t.phone,
                                                  "Lease Expiry", message, dryRun));
+                        AuditLogger.Log("settings", "info", "Notified " + t.name + " about their expiring lease", "System");
+
+                        bool pmAlreadySent = recent.Any(r => r.Tid == t.Tid && r.type == "Lease Expiry (PM)");
+                        if (!pmAlreadySent)
+                        {
+                            foreach (var pm in pms)
+                            {
+                               
+
+
+                                string pmmessage =
+                                    $"Hi {pm.name}, {t.name}'s lease at Green Residences ends on " +
+                                     $"{t.leaseEnd:MMM dd, yyyy} ({daysLeft} day{(daysLeft == 1 ? "" : "s")} left). " +
+                                    "Please contact the tenant to negotiate the lease. Thank you!";
+
+                                run.results.Add(Dispatch(connect, t.Tid, pm.name, pm.phone,
+                                                         "Lease Expiry (PM)", pmmessage, dryRun));
+
+                            }
+                            AuditLogger.Log("settings", "info", "Notified property managers about " + t.name + "'s expiring lease", "System");
+
+                        }
+
+
                     }
+                   
 
                     // ---- 2. Unpaid rent due within 15 days ----
                     var dueSoon = (from p in connect.payment
@@ -110,6 +139,10 @@ namespace WebApplication1.Services
 
                         run.results.Add(Dispatch(connect, row.t.Tid, row.t.name, row.t.phone,
                                                  "Payment Due", message, dryRun));
+
+                        AuditLogger.Log("settings", "info", "Notified " + row.t.name + " about upcoming rent due", "System");
+
+
                     }
 
                     connect.SaveChanges();

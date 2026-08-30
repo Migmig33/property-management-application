@@ -16,8 +16,8 @@
 
 
 -- Dumping database structure for db_greenresidences
-
-USE `db65847`;
+CREATE DATABASE IF NOT EXISTS `db_greenresidences` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
+USE `db_greenresidences`;
 
 -- Dumping structure for table db_greenresidences.admin
 CREATE TABLE IF NOT EXISTS `admin` (
@@ -27,8 +27,9 @@ CREATE TABLE IF NOT EXISTS `admin` (
   `role` int(11) DEFAULT NULL,
   `lastActive` datetime DEFAULT NULL,
   `name` varchar(50) DEFAULT NULL,
+  `phone` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
@@ -50,7 +51,7 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
   `actor` varchar(150) DEFAULT NULL,
   `createdAt` datetime NOT NULL,
   PRIMARY KEY (`logId`)
-) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
@@ -107,15 +108,6 @@ CREATE TABLE IF NOT EXISTS `maintenance_request` (
 
 -- Data exporting was unselected.
 
--- Dumping structure for table db_greenresidences.occupancy_type
-CREATE TABLE IF NOT EXISTS `occupancy_type` (
-  `occupancyTypeId` int(11) NOT NULL AUTO_INCREMENT,
-  `occupancyType` varchar(50) DEFAULT NULL,
-  PRIMARY KEY (`occupancyTypeId`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Data exporting was unselected.
-
 -- Dumping structure for table db_greenresidences.payment
 CREATE TABLE IF NOT EXISTS `payment` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -139,7 +131,7 @@ CREATE TABLE IF NOT EXISTS `sms_log` (
   `status` varchar(20) DEFAULT NULL,
   `sentAt` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 

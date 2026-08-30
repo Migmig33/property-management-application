@@ -114,7 +114,7 @@
                         Browse Units
                     </button>
 
-                    <button ng-click="goTo('MBookings')" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-green-500 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <button ng-click="goTo('MBookings')" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-green-500" ng-class="currentPage == 'Bookings' ? ' bg-green-50 text-green-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' ">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
                             <line x1="16" x2="16" y1="2" y2="6" />
@@ -126,7 +126,7 @@
                 </nav>
 
                 <div class="flex items-center gap-2">
-                    <div ng-if="visitorName" class="flex items-center gap-2">
+                    <div ng-if="visitorName" class="flex items-center gap-2" ng-cloak>
                         <span class="text-xs text-slate-500">
                             Signed in as <span class="font-medium text-slate-700">{{ visitorName }}</span>
                         </span>
@@ -141,7 +141,7 @@
                         </button>
                     </div>
 
-                    <button ng-click="goTo('Auth')" class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-green-50 text-green-700 hover:bg-green-100 transition-all focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <button ng-click="goTo('Auth')" class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-green-50 text-green-700 hover:bg-green-100 transition-all focus:outline-none focus:ring-2 focus:ring-green-500" ng-cloak>
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10" />
                             <circle cx="12" cy="10" r="3" />

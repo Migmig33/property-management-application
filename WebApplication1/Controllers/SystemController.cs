@@ -1067,6 +1067,73 @@ namespace WebApplication1.Controllers
             }
         }
 
+        // POST /System/AddAmenity
+        [HttpPost]
+        public JsonResult AddAmenity(AmenityDTO data)
+        {
+            try
+            {
+                if (data == null || string.IsNullOrWhiteSpace(data.name))
+                    return Json(new { success = false, message = "Amenity name is required." });
+
+                string name = data.name.Trim();
+
+                using (var connect = new DB_Context())
+                {
+                    if (connect.amenity.Any(a => a.name == name))
+                        return Json(new { success = false, message = "That amenity already exists." });
+
+                    var newAmenity = new amenity { name = name };
+                    connect.amenity.Add(newAmenity);
+                    connect.SaveChanges();
+
+                    CacheHelper.Remove("amenities"); // keep cache fresh (you cache GetAllAmenities)
+                    AuditLogger.Log("settings", "info", "Added amenity: " + name, CurrentUserName());
+
+                    return Json(new { success = true, id = newAmenity.id, name = name });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+        // POST /System/DeleteAmenity
+        [HttpPost]
+        public JsonResult DeleteAmenity(AmenityDTO data)
+        {
+            try
+            {
+                if (data == null || data.id <= 0)
+                    return Json(new { success = false, message = "Invalid amenity." });
+
+                using (var connect = new DB_Context())
+                {
+                    var target = connect.amenity.FirstOrDefault(a => a.id == data.id);
+                    if (target == null)
+                        return Json(new { success = false, message = "Amenity not found." });
+
+                    string name = target.name;
+
+                    var targetAmenityUnit = connect.unit_amenity.Where(a => a.amenityId == data.id).ToList();
+                    if (targetAmenityUnit.Any())
+                        connect.unit_amenity.RemoveRange(targetAmenityUnit);
+
+                    connect.amenity.Remove(target);
+                    connect.SaveChanges();
+
+
+                    CacheHelper.Remove("amenities");
+                    AuditLogger.Log("settings", "warning", "Removed amenity: " + name, CurrentUserName());
+
+                    return Json(new { success = true, message = "Amenity Successfully Deleted." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
         [HttpGet]
         public ActionResult GetAllUnit()
         {
@@ -2127,140 +2194,10 @@ namespace WebApplication1.Controllers
             }, JsonRequestBehavior.AllowGet);
         }
 
-        // GET /System/GetLookups
-        [HttpGet]
-        public JsonResult GetLookups()
-        {
-            try
-            {
-                using (var connect = new DB_Context())
-                {
-                    var amenities = connect.amenity
-                        .OrderBy(a => a.name)
-                        .Select(a => a.name)
-                        .ToList();
-
-                    var occupancyTypes = connect.occupancy_type
-                        .OrderBy(o => o.occupancyType)
-                        .Select(o => o.occupancyType)
-                        .ToList();
-
-                    var data = new[]
-                    {
-                new {
-                    id          = "amenity",
-                    name        = "Amenities",
-                    description = "Features and facilities available in units.",
-                    items       = amenities
-                },
-                new {
-                    id          = "occupancy_type",
-                    name        = "Occupancy Types",
-                    description = "Occupancy categories used for tenants and units.",
-                    items       = occupancyTypes
-                }
-            };
-
-                    return Json(new { success = true, data = data }, JsonRequestBehavior.AllowGet);
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
-            }
-        }
+     
 
 
-        // POST /System/AddLookupItem
-        [HttpPost]
-        public JsonResult AddLookupItem(LookupItemDTO data)
-        {
-            try
-            {
-                if (data == null || string.IsNullOrWhiteSpace(data.value))
-                    return Json(new { success = false, message = "Value is required." });
-
-                string value = data.value.Trim();
-                string label;
-
-                using (var connect = new DB_Context())
-                {
-                    switch (data.key)
-                    {
-                        case "amenity":
-                            if (connect.amenity.Any(a => a.name == value))
-                                return Json(new { success = false, message = "That amenity already exists." });
-                            connect.amenity.Add(new amenity { name = value });
-                            label = "Amenities";
-                            break;
-
-                        case "occupancy_type":
-                            if (connect.occupancy_type.Any(o => o.occupancyType == value))
-                                return Json(new { success = false, message = "That occupancy type already exists." });
-                            connect.occupancy_type.Add(new occupancy_type { occupancyType = value });
-                            label = "Occupancy Types";
-                            break;
-
-                        default:
-                            return Json(new { success = false, message = "Unknown lookup table." });
-                    }
-
-                    connect.SaveChanges();
-                    AuditLogger.Log("settings", "info", "Added \"" + value + "\" to " + label, CurrentUserName());
-                    return Json(new { success = true });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
-
-        // POST /System/RemoveLookupItem
-        [HttpPost]
-        public JsonResult RemoveLookupItem(LookupItemDTO data)
-        {
-            try
-            {
-                if (data == null || string.IsNullOrWhiteSpace(data.value))
-                    return Json(new { success = false, message = "Value is required." });
-
-                string value = data.value.Trim();
-                string label;
-
-                using (var connect = new DB_Context())
-                {
-                    switch (data.key)
-                    {
-                        case "amenity":
-                            var am = connect.amenity.FirstOrDefault(a => a.name == value);
-                            if (am == null) return Json(new { success = false, message = "Item not found." });
-                            connect.amenity.Remove(am);
-                            label = "Amenities";
-                            break;
-
-                        case "occupancy_type":
-                            var ot = connect.occupancy_type.FirstOrDefault(o => o.occupancyType == value);
-                            if (ot == null) return Json(new { success = false, message = "Item not found." });
-                            connect.occupancy_type.Remove(ot);
-                            label = "Occupancy Types";
-                            break;
-
-                        default:
-                            return Json(new { success = false, message = "Unknown lookup table." });
-                    }
-
-                    connect.SaveChanges();
-                    AuditLogger.Log("settings", "warning", "Removed \"" + value + "\" from " + label, CurrentUserName());
-                    return Json(new { success = true });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
+      
         [HttpGet]
         public JsonResult GetAuditLogs()
         {

@@ -19,7 +19,6 @@ namespace WebApplication1.Models.Context
         public virtual DbSet<tenant_document> tenant_document { get; set; }
         public virtual DbSet<tenant> tenant { get; set; }
         public virtual DbSet<payment> payment { get; set; }
-        public virtual DbSet<occupancy_type> occupancy_type { get; set; }
         public virtual DbSet<maintenance_request> maintenance_request { get; set; }
         public virtual DbSet<co_occupant> co_occupant { get; set; }
         public virtual DbSet<booking> booking { get; set; }
@@ -38,7 +37,6 @@ namespace WebApplication1.Models.Context
             modelBuilder.Configurations.Add(new Maps.tenant_document_maps());
             modelBuilder.Configurations.Add(new Maps.tenant_maps());
             modelBuilder.Configurations.Add(new Maps.payment_maps());
-            modelBuilder.Configurations.Add(new Maps.occupancy_type_maps());
             modelBuilder.Configurations.Add(new Maps.maintenance_request_maps());
             modelBuilder.Configurations.Add(new Maps.co_occupant_maps());
             modelBuilder.Configurations.Add(new Maps.booking_maps());
