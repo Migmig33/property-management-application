@@ -272,7 +272,7 @@
     <Compile Include="Services\SmsServices.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include=".gitignore" />
+    
     <Content Include="Assets\bg.jpg" />
     <Content Include="Content\bootstrap-grid.css" />
     <Content Include="Content\bootstrap-grid.min.css" />
