@@ -226,11 +226,13 @@
     <Compile Include="Controllers\TenantPortalController.cs" />
     <Compile Include="Filter\CheckSessionAttribute.cs" />
     <Compile Include="Filter\RateLimitAttribute.cs" />
+    <Compile Include="Filter\ValidateJsonAntiForgeryTokenAttribute.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Helper\AuditLogger.cs" />
     <Compile Include="Helper\CacheHelper.cs" />
+    <Compile Include="Helper\UnitAvailabilityHelper.cs" />
     <Compile Include="Models\Context\DB_Context.cs" />
     <Compile Include="Models\LoginModelDTO.cs" />
     <Compile Include="Models\Maps\admin_maps.cs" />
@@ -270,6 +272,7 @@
     <Compile Include="Services\SmsServices.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include=".gitignore" />
     <Content Include="Assets\bg.jpg" />
     <Content Include="Content\bootstrap-grid.css" />
     <Content Include="Content\bootstrap-grid.min.css" />
@@ -364,6 +367,7 @@
     <Content Include="LinqToDB.Templates\DataAnnotations.ttinclude" />
     <Content Include="LinqToDB.Templates\!ReadMe.LinqToDB.md" />
     <Content Include="LinqToDB.Templates\LinqToDB.MySql.Tools.ttinclude" />
+    <Content Include="Appsettings.Local.config" />
     <None Include="Properties\PublishProfiles\site88161-WebDeploy.pubxml" />
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />
     <Content Include="Scripts\i18n\angular-locale_af-na.js" />

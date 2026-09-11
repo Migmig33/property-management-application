@@ -22,6 +22,7 @@ namespace WebApplication1.Models
         public string date { get; set; }   // "yyyy-MM-dd"
         public string slot { get; set; }   // "08:00 AM"
         public string notes { get; set; }
+        public bool bedspaceConfirmed { get; set; }
     }
   
     

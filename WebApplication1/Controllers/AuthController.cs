@@ -379,6 +379,28 @@ namespace WebApplication1.Controllers
                     if (unit == null)
                         return Json(new { success = false, message = "Unit not found." });
 
+                    if (unit.status != "active")
+                        return Json(new { success = false, message = "This unit is no longer available for booking." });
+
+                    var today = DateTime.Today;
+                    var currentTenant = connect.tenant
+                        .Where(t => t.unitId == selectedUid && t.isTerminated != 1 && t.leaseEnd >= today)
+                        .OrderByDescending(t => t.leaseEnd)
+                        .FirstOrDefault();
+
+                    if (currentTenant != null)
+                    {
+                        int totalOccupants = 1 + connect.co_occupant.Count(c => c.Tid == currentTenant.Tid);
+                        bool hasOpenBedspace = UnitAvailabilityHelper.HasOpenBedspace(
+                            currentTenant.occupancyTypeId, unit.maxOccupants, totalOccupants);
+
+                        if (!hasOpenBedspace)
+                            return Json(new { success = false, message = "This unit is currently occupied and has no available bedspace slots." });
+
+                        if (!data.bedspaceConfirmed)
+                            return Json(new { success = false, message = "Please confirm that you understand this booking is for a bedspace in a shared unit." });
+                    }
+
                     // ---- Admin busy day ----
                     var dayStart = bookingDatetime.Date;
                     var dayEnd = dayStart.AddDays(1);

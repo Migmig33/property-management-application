@@ -1,5 +1,17 @@
 ﻿app.service('service', function ($http) {
 
+    function formDataWithToken(values) {
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        var data = angular.extend({}, values);
+        if (tokenInput && tokenInput.value) {
+            data.__RequestVerificationToken = tokenInput.value;
+        }
+
+        return Object.keys(data).map(function (key) {
+            return encodeURIComponent(key) + '=' + encodeURIComponent(data[key]);
+        }).join('&');
+    }
+
     //Login Service
     this.authService = function (data) {
         var response = $http({
@@ -74,17 +86,36 @@
         });
     };
 
-    this.saveTenantService = function (tenantData, coOccupants, idFiles, id) {
+    this.saveTenantService = function (tenantData, coOccupants, idFiles, id, deletedDocumentIds) {
+        var form = new FormData();
+        Object.keys(tenantData).forEach(function (key) {
+            var value = tenantData[key];
+            if (Array.isArray(value)) {
+                value.forEach(function (item, index) { form.append('tenantData.' + key + '[' + index + ']', item); });
+            } else if (value !== null && value !== undefined) {
+                form.append('tenantData.' + key, value);
+            }
+        });
+        (coOccupants || []).forEach(function (occupant, index) {
+            ['id', 'name', 'phone', 'address'].forEach(function (key) {
+                if (occupant[key] !== null && occupant[key] !== undefined) {
+                    form.append('coOccupants[' + index + '].' + key, occupant[key]);
+                }
+            });
+        });
+        (idFiles || []).forEach(function (file) {
+            if (!file.id && file.fileObj) form.append('idUploads', file.fileObj, file.name);
+        });
+        (deletedDocumentIds || []).forEach(function (documentId, index) {
+            form.append('deletedDocumentIds[' + index + ']', documentId);
+        });
+        if (id) form.append('id', id);
         var response = $http({
             url: "/System/SaveTenant",
             method: "post",
-            data: {
-                tenantData: tenantData,
-                coOccupants: coOccupants,
-                idFiles: idFiles,
-                id: id
-            },
-            headers: { "Content-Type": "application/json" }
+            data: form,
+            headers: { "Content-Type": undefined },
+            transformRequest: angular.identity
         });
         return response;
     };
@@ -214,11 +245,21 @@
     };
 
     this.AddAmenityService = function (payload) {
-        return $http({ method: 'post', url: '/System/AddAmenity', data: payload, headers: { "Content-Type": "application/json" } });
+        return $http({
+            method: 'post',
+            url: '/System/AddAmenity',
+            data: formDataWithToken({ name: payload.name }),
+            headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" }
+        });
     }
 
     this.DeleteAmenityService = function (payload) {
-        return $http({ method: 'post', url: '/System/DeleteAmenity', data: payload, headers: { "Content-Type": "application/json" } });
+        return $http({
+            method: 'post',
+            url: '/System/DeleteAmenity',
+            data: formDataWithToken({ id: payload.id }),
+            headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" }
+        });
     }
 
     //Delete Service

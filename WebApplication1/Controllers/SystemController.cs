@@ -57,8 +57,11 @@ namespace WebApplication1.Controllers
         {
             return View("Renters/MyBookings");
         }
-        public ActionResult RentersUnitDetails()
+        public ActionResult RentersUnitDetails(int? id)
         {
+            if (id.HasValue && id.Value > 0)
+                Session["SelectedUid"] = id.Value;
+
             return View("Renters/UnitDetails");
 
         }
@@ -72,7 +75,7 @@ namespace WebApplication1.Controllers
         {
             return View("Admin/Units");
         }
-        [CheckSession(AllowedRoles = new[] { 2 })]
+        //[CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Tenants()
         {
             return View("Admin/Tenants");
@@ -140,19 +143,82 @@ namespace WebApplication1.Controllers
 
         [HttpPost]
         public JsonResult SaveTenant(tenant tenantData, List<co_occupant> coOccupants,
-                                     List<IdFileDto> idFiles, List<int> deletedDocumentIds, int? id)
+                              List<IdFileDto> idFiles, List<int> deletedDocumentIds, int? id,
+                              List<HttpPostedFileBase> idUploads = null)
         {
+            var uploadedPaths = new List<string>();
+            bool committed = false;
             try
             {
                 using (var connect = new DB_Context())
+                using (var transaction = connect.Database.BeginTransaction())
                 {
                     var existingTenant = connect.tenant.FirstOrDefault(x => x.Tid == id);
+                    idFiles = idFiles ?? new List<IdFileDto>();
+                    int retainedDocuments = 0;
+                    if (existingTenant != null)
+                    {
+                        var documents = connect.tenant_document.Where(d => d.Tid == existingTenant.Tid);
+                        if (deletedDocumentIds != null && deletedDocumentIds.Any())
+                            documents = documents.Where(d => !deletedDocumentIds.Contains(d.id));
+                        retainedDocuments = documents.Count();
+                    }
+                    if (retainedDocuments + idFiles.Count(f => f.id == 0) + (idUploads == null ? 0 : idUploads.Count) > 2)
+                        throw new InvalidOperationException("Maximum of 2 ID documents allowed.");
 
-                    // ========================================================
+                    // Store image files outside the database and outside the public web root.
+                    foreach (var upload in idUploads ?? new List<HttpPostedFileBase>())
+                    {
+                        idFiles.Add(new IdFileDto
+                        {
+                            name = Path.GetFileName(upload.FileName),
+                            url = SaveTenantIdImage(upload, uploadedPaths)
+                        });
+                    }
+                    bool usesCoOcc = UsesCoOccupants(tenantData.occupancyTypeId);
+
+                    // ---- Capacity guard: 1 main tenant + co-occupants <= maxOccupants ----
+                    if (tenantData.unitId > 0)
+                    {
+                        var targetUnit = connect.unit.FirstOrDefault(u => u.Uid == tenantData.unitId);
+                        if (targetUnit != null)
+                        {
+                            int incoming = 1 + (usesCoOcc && coOccupants != null
+                                ? coOccupants.Count(c => !string.IsNullOrWhiteSpace(c.name))
+                                : 0);
+
+                            if (targetUnit.maxOccupants > 0 && incoming > targetUnit.maxOccupants)
+                            {
+                                return Json(new
+                                {
+                                    success = false,
+                                    message = "This unit only holds " + targetUnit.maxOccupants + " occupant(s)."
+                                }, JsonRequestBehavior.AllowGet);
+                            }
+                        }
+                    }
+
+                    // ================================================================
                     // INSERT
-                    // ========================================================
+                    // ================================================================
                     if (existingTenant == null)
                     {
+                        // Block a second main tenant on an already-occupied unit
+                        if (tenantData.unitId > 0)
+                        {
+                            bool alreadyTaken = connect.tenant.Any(t =>
+                                t.unitId == tenantData.unitId && t.isTerminated != 1);
+
+                            if (alreadyTaken)
+                            {
+                                return Json(new
+                                {
+                                    success = false,
+                                    message = "That unit already has a tenant. To add a bedspacer, edit the existing tenant and add them as an occupant."
+                                }, JsonRequestBehavior.AllowGet);
+                            }
+                        }
+
                         string newTenantNumber = tenantData.tenantNumber;
                         if (string.IsNullOrEmpty(newTenantNumber))
                             newTenantNumber = "T-" + DateTime.Now.ToString("yyyyMMddHHmm");
@@ -166,7 +232,7 @@ namespace WebApplication1.Controllers
                             address = tenantData.address,
                             occupation = tenantData.occupation,
                             occupancyTypeId = tenantData.occupancyTypeId,
-                            passwordHash = BCrypt.Net.BCrypt.HashPassword(tenantData.passwordHash),   // hashed
+                            passwordHash = BCrypt.Net.BCrypt.HashPassword(tenantData.passwordHash),
                             unitId = tenantData.unitId,
                             status = "Active",
                             isTerminated = 0,
@@ -199,11 +265,13 @@ namespace WebApplication1.Controllers
                             }
                         }
 
-                        // ---- Co-occupants ----
-                        if (newTenant.occupancyTypeId == 2 && coOccupants != null)
+                        // ---- Co-occupants: Household (2) AND Bedspace (3) ----
+                        if (usesCoOcc && coOccupants != null)
                         {
                             foreach (var occ in coOccupants)
                             {
+                                if (string.IsNullOrWhiteSpace(occ.name)) continue;
+
                                 connect.co_occupant.Add(new co_occupant
                                 {
                                     Tid = newTenant.Tid,
@@ -233,14 +301,16 @@ namespace WebApplication1.Controllers
                             connect.SaveChanges();
                         }
 
+                        transaction.Commit();
+                        committed = true;
                         AuditLogger.Log("user", "info", "Created tenant: " + newTenant.name, CurrentUserName());
                         return Json(new { success = true, message = "Tenant Saved Successfully" },
                                     JsonRequestBehavior.AllowGet);
                     }
 
-                    // ========================================================
+                    // ================================================================
                     // UPDATE
-                    // ========================================================
+                    // ================================================================
                     int previousUnitId = existingTenant.unitId;
 
                     existingTenant.name = tenantData.name;
@@ -253,13 +323,12 @@ namespace WebApplication1.Controllers
                     existingTenant.leaseStart = tenantData.leaseStart;
                     existingTenant.leaseEnd = tenantData.leaseEnd;
 
-                    // Blank means "leave the password alone"; if provided, hash it
                     if (!string.IsNullOrEmpty(tenantData.passwordHash))
-                        existingTenant.passwordHash = BCrypt.Net.BCrypt.HashPassword(tenantData.passwordHash);   // hashed
+                        existingTenant.passwordHash = BCrypt.Net.BCrypt.HashPassword(tenantData.passwordHash);
 
                     connect.SaveChanges();
 
-                    // ---- Co-occupant deletions (sent inside tenantData) ----
+                    // ---- Co-occupant deletions ----
                     if (tenantData.deletedCoOccupants != null && tenantData.deletedCoOccupants.Any())
                     {
                         var toDelete = connect.co_occupant
@@ -270,14 +339,15 @@ namespace WebApplication1.Controllers
                         connect.SaveChanges();
                     }
 
-                    // ---- Co-occupant adds and edits ----
-                    if (tenantData.occupancyTypeId == 2 && coOccupants != null)
+                    // ---- Co-occupant adds and edits: Household (2) AND Bedspace (3) ----
+                    if (usesCoOcc && coOccupants != null)
                     {
                         foreach (var occ in coOccupants)
                         {
                             if (occ.id == 0)
                             {
-                                // New row
+                                if (string.IsNullOrWhiteSpace(occ.name)) continue;
+
                                 connect.co_occupant.Add(new co_occupant
                                 {
                                     Tid = existingTenant.Tid,
@@ -301,7 +371,7 @@ namespace WebApplication1.Controllers
                     }
                     else if (tenantData.occupancyTypeId == 1)
                     {
-                        // Switched back to Solo — clear them all out
+                        // Switched to Single Occupant -> clear all co-occupants
                         var all = connect.co_occupant
                             .Where(c => c.Tid == existingTenant.Tid)
                             .ToList();
@@ -317,14 +387,14 @@ namespace WebApplication1.Controllers
                     if (deletedDocumentIds != null && deletedDocumentIds.Any())
                     {
                         var docsToDelete = connect.tenant_document
-                            .Where(d => deletedDocumentIds.Contains(d.id))
+                            .Where(d => d.Tid == existingTenant.Tid && deletedDocumentIds.Contains(d.id))
                             .ToList();
 
                         connect.tenant_document.RemoveRange(docsToDelete);
                         connect.SaveChanges();
                     }
 
-                    // ---- New documents only (existing ones already have an id) ----
+                    // ---- New documents only ----
                     if (idFiles != null)
                     {
                         foreach (var file in idFiles)
@@ -356,12 +426,14 @@ namespace WebApplication1.Controllers
                             var oldUnit = connect.unit.FirstOrDefault(u => u.Uid == previousUnitId);
                             if (oldUnit != null)
                             {
-                                oldUnit.status = "active";   // vacant but still listed
+                                oldUnit.status = "active";
                                 connect.SaveChanges();
                             }
                         }
                     }
 
+                    transaction.Commit();
+                    committed = true;
                     AuditLogger.Log("user", "info", "Updated tenant: " + existingTenant.name, CurrentUserName());
                     return Json(new { success = true, message = "Tenant Saved Successfully" },
                                 JsonRequestBehavior.AllowGet);
@@ -372,7 +444,68 @@ namespace WebApplication1.Controllers
                 return Json(new { success = false, message = ErrorHandling(ex) },
                             JsonRequestBehavior.AllowGet);
             }
+            finally
+            {
+                if (!committed)
+                {
+                    foreach (var path in uploadedPaths)
+                    {
+                        try { System.IO.File.Delete(path); }
+                        catch (IOException) { }
+                        catch (UnauthorizedAccessException) { }
+                    }
+                }
+            }
         }
+
+        private string SaveTenantIdImage(HttpPostedFileBase upload, List<string> uploadedPaths)
+        {
+            if (upload == null || upload.ContentLength == 0 || upload.ContentLength > 10 * 1024 * 1024)
+                throw new InvalidOperationException("Each ID image must be between 1 byte and 10 MB.");
+            if (Path.GetFileName(upload.FileName).Length > 255)
+                throw new InvalidOperationException("The ID image filename must be 255 characters or fewer.");
+
+            string extension;
+            try
+            {
+                using (var image = System.Drawing.Image.FromStream(upload.InputStream, false, true))
+                {
+                    var format = image.RawFormat;
+                    if (format.Equals(System.Drawing.Imaging.ImageFormat.Jpeg)) extension = ".jpg";
+                    else if (format.Equals(System.Drawing.Imaging.ImageFormat.Png)) extension = ".png";
+                    else if (format.Equals(System.Drawing.Imaging.ImageFormat.Gif)) extension = ".gif";
+                    else if (format.Equals(System.Drawing.Imaging.ImageFormat.Bmp)) extension = ".bmp";
+                    else if (format.Equals(System.Drawing.Imaging.ImageFormat.Tiff)) extension = ".tif";
+                    else throw new ArgumentException();
+                }
+            }
+            catch (ArgumentException)
+            {
+                throw new InvalidOperationException("Please upload a valid JPG, PNG, GIF, BMP, or TIFF ID image.");
+            }
+
+            string fileName = Guid.NewGuid().ToString("N") + extension;
+            string folder = Server.MapPath("~/App_Data/TenantIds");
+            Directory.CreateDirectory(folder);
+            string path = Path.Combine(folder, fileName);
+            uploadedPaths.Add(path);
+            upload.SaveAs(path);
+            return Url.Content("~/System/TenantIdImage") + "?name=" + fileName;
+        }
+
+        [HttpGet]
+        [CheckSession(AllowedRoles = new[] { 1, 2 })]
+        public ActionResult TenantIdImage(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name) || name != Path.GetFileName(name))
+                return HttpNotFound();
+            string path = Server.MapPath("~/App_Data/TenantIds/" + name);
+            if (!System.IO.File.Exists(path)) return HttpNotFound();
+            Response.Cache.SetCacheability(HttpCacheability.NoCache);
+            Response.Cache.SetNoStore();
+            return File(path, MimeMapping.GetMimeMapping(name));
+        }
+
         [HttpPost]
         public JsonResult SaveUnit(unit data, List<string> imageUrls, string amenityIds, int? id)
         {
@@ -966,13 +1099,15 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet]
+        [CheckSession(AllowedRoles = new[] { 1 })]
         public ActionResult GetDashboardDataAdmin()
         {
             try
             {
                 using (var connect = new DB_Context())
                 {
-                    var activeWindow = DateTime.Now.AddMinutes(-15); // "active right now" knob
+                    var activeWindow = DateTime.Now.AddMinutes(-5);
 
                     // ---- 1. Active users (admin + tenant by lastActive) ----
                     int adminTotal = connect.admin.Count();
@@ -1069,14 +1204,18 @@ namespace WebApplication1.Controllers
 
         // POST /System/AddAmenity
         [HttpPost]
-        public JsonResult AddAmenity(AmenityDTO data)
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        [ValidateAntiForgeryToken]
+        public JsonResult AddAmenity(string name)
         {
             try
             {
-                if (data == null || string.IsNullOrWhiteSpace(data.name))
+                if (string.IsNullOrWhiteSpace(name))
                     return Json(new { success = false, message = "Amenity name is required." });
 
-                string name = data.name.Trim();
+                name = name.Trim();
+                if (name.Length > 100)
+                    return Json(new { success = false, message = "Amenity names cannot exceed 100 characters." });
 
                 using (var connect = new DB_Context())
                 {
@@ -1100,24 +1239,33 @@ namespace WebApplication1.Controllers
         }
         // POST /System/DeleteAmenity
         [HttpPost]
-        public JsonResult DeleteAmenity(AmenityDTO data)
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        [ValidateAntiForgeryToken]
+        public JsonResult DeleteAmenity(int id)
         {
             try
             {
-                if (data == null || data.id <= 0)
+                if (id <= 0)
                     return Json(new { success = false, message = "Invalid amenity." });
 
                 using (var connect = new DB_Context())
                 {
-                    var target = connect.amenity.FirstOrDefault(a => a.id == data.id);
+                    var target = connect.amenity.FirstOrDefault(a => a.id == id);
                     if (target == null)
                         return Json(new { success = false, message = "Amenity not found." });
 
                     string name = target.name;
 
-                    var targetAmenityUnit = connect.unit_amenity.Where(a => a.amenityId == data.id).ToList();
-                    if (targetAmenityUnit.Any())
-                        connect.unit_amenity.RemoveRange(targetAmenityUnit);
+                    int assignedUnits = connect.unit_amenity.Count(a => a.amenityId == id);
+                    if (assignedUnits > 0)
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            message = "This amenity is assigned to " + assignedUnits
+                                + " unit(s). Unassign it from those units before deleting it."
+                        });
+                    }
 
                     connect.amenity.Remove(target);
                     connect.SaveChanges();
@@ -1251,6 +1399,7 @@ namespace WebApplication1.Controllers
                 return LargeJson(new { success = false, message = ex.Message });
             }
         }
+
         public JsonResult GetAllTenant()
         {
             try
@@ -1265,9 +1414,7 @@ namespace WebApplication1.Controllers
                     var coOccupants = connect.co_occupant.ToList();
                     var tenantDocuments = connect.tenant_document.ToList();
 
-                    // 1. The RAW query (Runs in SQL Server)
                     var raw = (from t in tenants
-                                   // Left join the unit to get the unit name safely
                                join u in units on t.unitId equals u.Uid into unitGroup
                                from u in unitGroup.DefaultIfEmpty()
                                select new
@@ -1297,49 +1444,50 @@ namespace WebApplication1.Controllers
                                        c.address
                                    }).ToList(),
                                    additionalOccupantsCount = coOccupants.Count(c => c.Tid == t.Tid),
-
-
                                    idFiles = tenantDocuments
-                                    .Where(d => d.Tid == t.Tid)
-                                    .Select(d => new
-                                    {
-                                        id = d.id,
-                                        url = d.fileUrl,
-                                        fileName = d.fileName,
-                                        fileType = d.fileType
-                                    })
-                                    .ToList(),
-
+                                       .Where(d => d.Tid == t.Tid)
+                                       .Select(d => new
+                                       {
+                                           id = d.id,
+                                           url = d.fileUrl,
+                                           fileName = d.fileName,
+                                           fileType = d.fileType
+                                       })
+                                       .ToList()
                                }).ToList();
 
                     var data = raw.Select(t =>
                     {
-                        // Occupancy logic
-                        var occupancyType = t.additionalOccupantsCount > 0 ? "with_others" : "solo";
+                        // Occupancy label from the type id
+                        string occupancyLabel;
+                        switch (t.occupancyTypeId)
+                        {
+                            case 1: occupancyLabel = "Single Occupant"; break;
+                            case 2: occupancyLabel = "Household"; break;
+                            case 3: occupancyLabel = "Bedspace"; break;
+                            default: occupancyLabel = "\u2014"; break;
+                        }
 
-                        // Days left logic
+                        // Headcount = main tenant + co-occupants
+                        int totalOccupants = 1 + t.additionalOccupantsCount;
+                        int slotsOpen = t.maxOccupants > 0
+                            ? Math.Max(0, t.maxOccupants - totalOccupants)
+                            : 0;
+
                         var daysLeft = (int?)(t.leaseEnd.Date - today).TotalDays;
 
-                        // Live status logic
                         string liveStatus;
-                        if (t.isTerminated == 1)
-                            liveStatus = "Terminated";
-                        else if (t.leaseEnd < today)
-                            liveStatus = "Expired";
-                        else if (t.leaseEnd <= expiringThreshold)
-                            liveStatus = "Expiring";
-                        else
-                            liveStatus = "Active";
+                        if (t.isTerminated == 1) liveStatus = "Terminated";
+                        else if (t.leaseEnd < today) liveStatus = "Expired";
+                        else if (t.leaseEnd <= expiringThreshold) liveStatus = "Expiring";
+                        else liveStatus = "Active";
 
-                        // Contract type logic
-                        var leaseDurationMonths = ((t.leaseEnd.Year - t.leaseStart.Year) * 12) + t.leaseEnd.Month - t.leaseStart.Month;
+                        var leaseDurationMonths = ((t.leaseEnd.Year - t.leaseStart.Year) * 12)
+                                                  + t.leaseEnd.Month - t.leaseStart.Month;
                         string contractType;
-                        if (leaseDurationMonths <= 3)
-                            contractType = "Short-term";
-                        else if (leaseDurationMonths <= 6)
-                            contractType = "Mid-term";
-                        else
-                            contractType = "Long-term";
+                        if (leaseDurationMonths <= 3) contractType = "Short-term";
+                        else if (leaseDurationMonths <= 6) contractType = "Mid-term";
+                        else contractType = "Long-term";
 
                         return new
                         {
@@ -1361,15 +1509,21 @@ namespace WebApplication1.Controllers
                             unit = t.unitName,
                             unitId = t.unitId,
                             passwordHash = t.passwordHash,
-                            occupancyType = occupancyType,
+
                             occupancyTypeId = t.occupancyTypeId,
+                            occupancyLabel = occupancyLabel,
                             additionalOccupantsCount = t.additionalOccupantsCount,
+                            totalOccupants = totalOccupants,
+                            slotsOpen = slotsOpen,
+                            isJoinable = (t.occupancyTypeId == 3 && slotsOpen > 0 && t.isTerminated != 1),
+
                             daysLeft = daysLeft,
                             liveStatus = liveStatus,
                             contractType = contractType,
                             latestPaymentStatus = "None",
 
-                            idFiles = t.idFiles
+                            idFiles = t.idFiles,
+                            idFilesCount = t.idFiles.Count
                         };
                     }).ToList();
 
@@ -1381,6 +1535,8 @@ namespace WebApplication1.Controllers
                 return Json(new { success = false, message = ErrorHandling(ex) }, JsonRequestBehavior.AllowGet);
             }
         }
+
+
         public JsonResult GetAllBooking()
         {
             try
@@ -1645,6 +1801,7 @@ namespace WebApplication1.Controllers
             };
         }
 
+
         public ActionResult GetBrowseUnits()
         {
             try
@@ -1653,22 +1810,56 @@ namespace WebApplication1.Controllers
                 {
                     var today = DateTime.Today;
 
-                    // ---- 1. Units that currently have a live tenant ----
-                    var occupiedUnitIds = connect.tenant
+                    var activeUnits = connect.unit.Where(u => u.status == "active").ToList();
+                    var liveTenants = connect.tenant
                         .Where(t => t.isTerminated != 1 && t.leaseEnd >= today)
-                        .Select(t => t.unitId)
-                        .Distinct()
                         .ToList();
+                    var coOccupants = connect.co_occupant.ToList();
 
-                    // ---- 2. Vacant, active units ----
-                    var units = connect.unit
-                        .Where(u => u.status == "active" && !occupiedUnitIds.Contains(u.Uid))
+                    // Build availability per unit
+                    var availability = activeUnits.Select(u =>
+                    {
+                        var mainTenant = liveTenants.FirstOrDefault(t => t.unitId == u.Uid);
+
+                        if (mainTenant == null)
+                        {
+                            // Fully vacant
+                            return new
+                            {
+                                Uid = u.Uid,
+                                available = true,
+                                joinable = false,
+                                slotsOpen = u.maxOccupants,
+                                totalOccupants = 0
+                            };
+                        }
+
+                        int headcount = 1 + coOccupants.Count(c => c.Tid == mainTenant.Tid);
+                        int open = Math.Max(0, u.maxOccupants - headcount);
+
+                        // Only Bedspace (3) stays listable while it has open slots
+                        bool joinable = UnitAvailabilityHelper.HasOpenBedspace(
+                            mainTenant.occupancyTypeId, u.maxOccupants, headcount);
+
+                        return new
+                        {
+                            Uid = u.Uid,
+                            available = joinable,
+                            joinable = joinable,
+                            slotsOpen = open,
+                            totalOccupants = headcount
+                        };
+                    }).ToList();
+
+                    var availableIds = availability.Where(a => a.available).Select(a => a.Uid).ToList();
+
+                    var units = activeUnits
+                        .Where(u => availableIds.Contains(u.Uid))
                         .OrderBy(u => u.unitName)
                         .ToList();
 
                     var unitIds = units.Select(u => u.Uid).ToList();
 
-                    // ---- 3. Images and amenities ----
                     var images = connect.unit_image
                         .Where(i => unitIds.Contains(i.Uid))
                         .OrderBy(i => i.displayOrder)
@@ -1681,36 +1872,46 @@ namespace WebApplication1.Controllers
                                      select new { ua.Uid, a.name })
                                     .ToList();
 
-                    // ---- 4. Project ----
-                    var data = units.Select(u => new
+                    var data = units.Select(u =>
                     {
-                        id = u.Uid,
-                        name = u.unitName,
-                        price = u.price,
-                        beds = u.beds,
-                        sqm = u.sqm,
-                        floor = u.floor,
-                        description = u.description ?? "",
-                        address = u.address ?? "",
-                        videoUrl = u.videoUrl,
-                        colorCode = u.colorCode,
-                        status = u.status,
-                        maxOccupants = u.maxOccupants,
+                        var av = availability.First(a => a.Uid == u.Uid);
 
-                        // Cover image only — the grid never shows the rest
-                        images = images
-                            .Where(i => i.Uid == u.Uid)
-                            .Select(i => i.imageUrl)
-                            .Take(1)
-                            .ToList(),
+                        return new
+                        {
+                            id = u.Uid,
+                            name = u.unitName,
+                            price = u.price,
+                            beds = u.beds,
+                            sqm = u.sqm,
+                            floor = u.floor,
+                            description = u.description ?? "",
+                            address = u.address ?? "",
+                            videoUrl = u.videoUrl,
+                            colorCode = u.colorCode,
+                            status = u.status,
+                            maxOccupants = u.maxOccupants,
 
-                        amenities = amenities
-                            .Where(a => a.Uid == u.Uid)
-                            .Select(a => a.name)
-                            .ToList()
+                            // Bedspace info for the renter-facing badge
+                            joinable = av.joinable,
+                            slotsOpen = av.slotsOpen,
+                            currentOccupants = av.totalOccupants,
+                            availabilityLabel = av.joinable
+                                ? ("Bedspace \u00b7 " + av.slotsOpen + " slot(s) open")
+                                : "Vacant",
+
+                            images = images
+                                .Where(i => i.Uid == u.Uid)
+                                .Select(i => i.imageUrl)
+                                .Take(1)
+                                .ToList(),
+
+                            amenities = amenities
+                                .Where(a => a.Uid == u.Uid)
+                                .Select(a => a.name)
+                                .ToList()
+                        };
                     }).ToList();
 
-                    // ---- 5. Filter options ----
                     var bedOptions = units
                         .Where(u => !string.IsNullOrEmpty(u.beds))
                         .Select(u => u.beds)
@@ -1737,7 +1938,6 @@ namespace WebApplication1.Controllers
                 return LargeJson(new { success = false, message = ex.Message });
             }
         }
-
 
         // ============================================================
         // Paste both actions into SystemController
@@ -1783,11 +1983,26 @@ namespace WebApplication1.Controllers
                         .OrderByDescending(t => t.leaseEnd)
                         .FirstOrDefault();
 
+                    int totalOccupants = 0;
+                    int slotsOpen = Math.Max(0, u.maxOccupants);
+                    bool joinable = false;
+                    bool isAvailable = u.status == "active";
                     string occupancy = "Vacant";
                     if (tenant != null)
                     {
-                        var daysLeft = (tenant.leaseEnd - today).TotalDays;
-                        occupancy = (daysLeft <= 45) ? "Expiring" : "Occupied";
+                        totalOccupants = 1 + connect.co_occupant.Count(c => c.Tid == tenant.Tid);
+                        slotsOpen = Math.Max(0, u.maxOccupants - totalOccupants);
+                        joinable = UnitAvailabilityHelper.HasOpenBedspace(
+                            tenant.occupancyTypeId, u.maxOccupants, totalOccupants);
+                        isAvailable = u.status == "active" && joinable;
+
+                        if (joinable)
+                            occupancy = "Bedspace \u00b7 " + slotsOpen + " slot(s) open";
+                        else
+                        {
+                            var daysLeft = (tenant.leaseEnd - today).TotalDays;
+                            occupancy = (daysLeft <= 45) ? "Expiring" : "Occupied";
+                        }
                     }
 
                     // ---- Images and amenities ----
@@ -1816,6 +2031,9 @@ namespace WebApplication1.Controllers
                         video = u.videoUrl,
                         color = u.colorCode,
                         maxOccupants = u.maxOccupants,
+                        joinable = joinable,
+                        slotsOpen = slotsOpen,
+                        currentOccupants = totalOccupants,
                         images = images,
                         amenities = amenities
                     };
@@ -1863,6 +2081,7 @@ namespace WebApplication1.Controllers
                         success = true,
                         unit = unit,
                         occupancy = occupancy,
+                        isAvailable = isAvailable,
                         relatedUnits = relatedUnits
                     });
                 }
@@ -1999,6 +2218,7 @@ namespace WebApplication1.Controllers
             }
         }
         [HttpGet]
+        [CheckSession(AllowedRoles = new[] { 1 })]
         public JsonResult GetManagers()
         {
             try
@@ -2008,17 +2228,20 @@ namespace WebApplication1.Controllers
                     var onlineWindow = DateTime.Now.AddMinutes(-5); // "online now" = seen in last 5 min
 
                     var list = connect.admin
-                        .Where(a => a.role == 1 || a.role == 2)
                         .ToList() // pull to memory so we can format strings below
                         .Select(a => new
                         {
                             id = a.id,                                   // ← admin PK
                             name = a.name,
                             email = a.email,
-                            role = a.role == 1 ? "admin" : "property_manager",
+                            role = a.role == 1 ? "admin"
+                                 : a.role == 2 ? "property_manager"
+                                 : "invalid",
 
                             // status is NOT stored — derived from lastActive
-                            status = (a.lastActive != null && a.lastActive >= onlineWindow) ? "active" : "inactive",
+                            status = (a.role != 1 && a.role != 2)
+                                   ? "invalid"
+                                   : (a.lastActive != null && a.lastActive >= onlineWindow) ? "active" : "inactive",
 
                             // HTML binds these; no created column, lastLogin = lastActive
                             createdAt = (string)null,
@@ -2027,6 +2250,7 @@ namespace WebApplication1.Controllers
                                         : null
                         })
                         .OrderByDescending(x => x.role == "admin") // admins on top
+                        .ThenBy(x => x.role == "invalid")          // repairable legacy rows last
                         .ToList();
 
                     return Json(new { success = true, data = list }, JsonRequestBehavior.AllowGet);
@@ -2042,6 +2266,8 @@ namespace WebApplication1.Controllers
         // ===================== CREATE =====================
         // POST /System/CreateManager
         [HttpPost]
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        [ValidateJsonAntiForgeryToken]
         public JsonResult CreateManager(admin data)
         {
             try
@@ -2052,6 +2278,8 @@ namespace WebApplication1.Controllers
                     return Json(new { success = false, message = "Valid email is required." });
                 if (string.IsNullOrWhiteSpace(data.password) || data.password.Length < 8)
                     return Json(new { success = false, message = "Password must be at least 8 characters." });
+                if (data.role != 1 && data.role != 2)
+                    return Json(new { success = false, message = "Select a valid account role." });
 
                 using (var connect = new DB_Context())
                 {
@@ -2088,6 +2316,8 @@ namespace WebApplication1.Controllers
         // ===================== UPDATE =====================
         // POST /System/UpdateManager
         [HttpPost]
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        [ValidateJsonAntiForgeryToken]
         public JsonResult UpdateManager(admin data)
         {
             try
@@ -2108,6 +2338,11 @@ namespace WebApplication1.Controllers
                     // Protect the admin (role 1): lock email + role changes
                     if (target.role != 1)
                     {
+                        if (string.IsNullOrWhiteSpace(data.email) || !data.email.Contains("@"))
+                            return Json(new { success = false, message = "Valid email is required." });
+                        if (data.role != 1 && data.role != 2)
+                            return Json(new { success = false, message = "Select a valid account role." });
+
                         string email = data.email.Trim().ToLower();
                         bool taken = connect.admin.Any(a => a.email == email && a.id != target.id)
                                      || connect.tenant.Any(t => t.email == email);
@@ -2141,10 +2376,15 @@ namespace WebApplication1.Controllers
         // ===================== DELETE =====================
         // POST /System/DeleteManager
         [HttpPost]
+        [CheckSession(AllowedRoles = new[] { 1 })]
+        [ValidateJsonAntiForgeryToken]
         public JsonResult DeleteManager(admin data)
         {
             try
             {
+                if (data == null || data.id <= 0)
+                    return Json(new { success = false, message = "Invalid account." });
+
                 using (var connect = new DB_Context())
                 {
                     var target = connect.admin.FirstOrDefault(a => a.id == data.id); // ← PK
@@ -2181,6 +2421,10 @@ namespace WebApplication1.Controllers
                 return a != null ? a.name : email;
             }
         }
+        private static bool UsesCoOccupants(int occupancyTypeId)
+        {
+            return occupancyTypeId == 2 || occupancyTypeId == 3;
+        }
         [HttpGet]
         public JsonResult SchedulerStatus()
         {
@@ -2199,6 +2443,7 @@ namespace WebApplication1.Controllers
 
       
         [HttpGet]
+        [CheckSession(AllowedRoles = new[] { 1 })]
         public JsonResult GetAuditLogs()
         {
             try

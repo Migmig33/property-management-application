@@ -8,7 +8,7 @@
         <div>
             <h1 class="text-slate-900 mb-0.5 text-xl font-semibold">Property Managers</h1>
             <p ng-if="!isLoading" class="text-slate-500 text-sm">
-                Manage admin accounts and access for this portal.
+                Manage admin accounts and recent activity for this portal.
             </p>
             <!-- Header Skeleton -->
             <div ng-if="isLoading" class="h-4 w-64 bg-slate-200 rounded animate-pulse mt-1"></div>
@@ -36,11 +36,11 @@
         </div>
         <div class="bg-white rounded-2xl border border-slate-100 px-4 py-3 text-center">
             <p class="text-2xl font-bold text-green-600">{{ getStats().active }}</p>
-            <p class="text-slate-500 text-xs mt-0.5">Active</p>
+            <p class="text-slate-500 text-xs mt-0.5">Online</p>
         </div>
         <div class="bg-white rounded-2xl border border-slate-100 px-4 py-3 text-center">
             <p class="text-2xl font-bold text-slate-400">{{ getStats().inactive }}</p>
-            <p class="text-slate-500 text-xs mt-0.5">Inactive</p>
+            <p class="text-slate-500 text-xs mt-0.5">Offline</p>
         </div>
     </div>
 
@@ -134,13 +134,16 @@
                                 <span ng-if="m.role === 'property_manager'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> Property Manager
                                 </span>
+                                <span ng-if="m.role === 'invalid'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                                    Role needs repair
+                                </span>
                             </td>
                             <td class="px-5 py-3.5">
                                 <!-- Status Pill -->
                                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
-                                      ng-class="m.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
-                                    <span class="w-1.5 h-1.5 rounded-full" ng-class="m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'"></span>
-                                    {{ m.status === 'active' ? 'Active' : 'Inactive' }}
+                                      ng-class="m.status === 'active' ? 'bg-emerald-50 text-emerald-700' : (m.status === 'invalid' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500')">
+                                    <span class="w-1.5 h-1.5 rounded-full" ng-class="m.status === 'active' ? 'bg-emerald-500' : (m.status === 'invalid' ? 'bg-amber-500' : 'bg-slate-400')"></span>
+                                    {{ m.status === 'active' ? 'Online' : (m.status === 'invalid' ? 'Needs repair' : 'Offline') }}
                                 </span>
                             </td>
                             <td class="px-5 py-3.5 text-slate-500 text-xs">{{ formatDate(m.lastLogin) }}</td>
@@ -187,7 +190,6 @@
                             <div class="flex gap-1">
                                 <div class="w-8 h-8 rounded-lg bg-slate-200"></div>
                                 <div class="w-8 h-8 rounded-lg bg-slate-200"></div>
-                                <div class="w-8 h-8 rounded-lg bg-slate-200"></div>
                             </div>
                         </div>
                     </div>
@@ -213,12 +215,15 @@
                             <span ng-if="m.role === 'property_manager'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> Property Manager
                             </span>
+                            <span ng-if="m.role === 'invalid'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                                Role needs repair
+                            </span>
 
                             <!-- Status Pill (Mobile) -->
                             <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
-                                  ng-class="m.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
-                                <span class="w-1.5 h-1.5 rounded-full" ng-class="m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'"></span>
-                                {{ m.status === 'active' ? 'Active' : 'Inactive' }}
+                                  ng-class="m.status === 'active' ? 'bg-emerald-50 text-emerald-700' : (m.status === 'invalid' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500')">
+                                <span class="w-1.5 h-1.5 rounded-full" ng-class="m.status === 'active' ? 'bg-emerald-500' : (m.status === 'invalid' ? 'bg-amber-500' : 'bg-slate-400')"></span>
+                                {{ m.status === 'active' ? 'Online' : (m.status === 'invalid' ? 'Needs repair' : 'Offline') }}
                             </span>
                         </div>
                     </div>
@@ -229,14 +234,6 @@
                         <div class="flex gap-1">
                             <button title="Edit" ng-click="openEdit(m)" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all text-slate-400 hover:bg-slate-100 hover:text-slate-700">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
-                            </button>
-                            <button title="Toggle"
-                                    ng-click="handleToggleStatus(m)"
-                                    ng-disabled="m.role === 'admin'"
-                                    class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                                    ng-class="m.role === 'admin' ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'">
-                                <svg ng-if="m.status === 'active'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-green-500"><rect x="2" y="6" width="20" height="12" rx="6" /><circle cx="16" cy="12" r="2" /></svg>
-                                <svg ng-if="m.status !== 'active'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><rect x="2" y="6" width="20" height="12" rx="6" /><circle cx="8" cy="12" r="2" /></svg>
                             </button>
                             <button title="Delete"
                                     ng-click="confirmDelete(m)"
@@ -275,7 +272,7 @@
                         </p>
                     </div>
                 </div>
-                <button ng-click="closeModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all">
+                <button ng-click="closeManagerModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
             </div>
@@ -316,9 +313,10 @@
                                 ng-disabled="editTarget.role === 'admin'"
                                 class="w-full px-3 py-2.5 text-sm border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all border-slate-200"
                                 ng-class="{'opacity-60 cursor-not-allowed': editTarget.role === 'admin'}">
-                            <option value="2">Property Manager</option>
-                            <option value="1">Admin</option>
+                            <option ng-value="2">Property Manager</option>
+                            <option ng-value="1">Admin</option>
                         </select>
+                        <p class="text-xs text-red-500 mt-1" ng-show="formErrors.role">{{ formErrors.role }}</p>
                     </div>
 
                 </div>
@@ -373,8 +371,9 @@
                 </div>
 
                 <!-- Actions -->
+                <p class="text-xs text-red-500" ng-show="formErrors.general">{{ formErrors.general }}</p>
                 <div class="flex gap-2 pt-1">
-                    <button type="button" ng-click="closeModal()" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">
+                    <button type="button" ng-click="closeManagerModal()" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">
                         Cancel
                     </button>
                     <button type="submit" ng-disabled="saving" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-60 transition-all">
@@ -411,8 +410,8 @@
                 <button ng-click="deleteOpen = false; deleteTarget = null;" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">
                     Cancel
                 </button>
-                <button ng-click="handleDelete()" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all">
-                    Delete
+                <button ng-click="handleDelete()" ng-disabled="deletingManager" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 transition-all">
+                    {{ deletingManager ? 'Deleting…' : 'Delete' }}
                 </button>
             </div>
         </div>

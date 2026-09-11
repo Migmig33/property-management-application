@@ -7,12 +7,10 @@
      style="animation: slideDown 0.5s ease-in-out"
      class="fixed top-4 right-4 z-[100] flex items-center gap-3 bg-white border border-slate-200 shadow-sm rounded-2xl px-5 py-4 w-[400px] max-w-full transition-all duration-300">
 
-    <!-- Icon -->
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-gray-900 shrink-0">
         <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 8a.75.75 0 00-1.5 0v4a.75.75 0 001.5 0V8zM12 16a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
     </svg>
 
-    <!-- Dynamic Message -->
     <span class="text-slate-800 font-medium text-[15px]">{{ toast.message }}</span>
 </div>
 
@@ -52,6 +50,33 @@
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-y-2 gap-x-4 mb-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+
+        <!-- Occupancy Type -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs text-slate-400 font-medium">Occupancy:</span>
+            <button ng-click="setTenantOccupancy('All')"
+                    ng-class="tenantOccupancyFilter === 'All' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-200'"
+                    class="px-3 py-1 rounded-lg text-xs font-medium border transition-all">
+                All
+            </button>
+            <button ng-click="setTenantOccupancy(1)"
+                    ng-class="tenantOccupancyFilter === 1 ? 'bg-slate-600 text-white border-slate-600' : 'bg-white text-slate-600 border-slate-200'"
+                    class="px-3 py-1 rounded-lg text-xs font-medium border transition-all">
+                Single
+            </button>
+            <button ng-click="setTenantOccupancy(2)"
+                    ng-class="tenantOccupancyFilter === 2 ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-200'"
+                    class="px-3 py-1 rounded-lg text-xs font-medium border transition-all">
+                Household
+            </button>
+            <button ng-click="setTenantOccupancy(3)"
+                    ng-class="tenantOccupancyFilter === 3 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'"
+                    class="px-3 py-1 rounded-lg text-xs font-medium border transition-all">
+                Bedspace
+            </button>
+        </div>
+
+        <div class="hidden sm:block w-px bg-slate-200 self-stretch"></div>
 
         <!-- Contract Type -->
         <div class="flex items-center gap-2 flex-wrap">
@@ -111,8 +136,8 @@
         </div>
 
         <!-- Reset -->
-        <button ng-if="tenantContractFilter !== 'All' || tenantLiveStatusFilter !== 'All'"
-                ng-click="tenantContractFilter = 'All'; tenantLiveStatusFilter = 'All'"
+        <button ng-if="tenantContractFilter !== 'All' || tenantLiveStatusFilter !== 'All' || tenantOccupancyFilter !== 'All'"
+                ng-click="tenantContractFilter = 'All'; tenantLiveStatusFilter = 'All'; tenantOccupancyFilter = 'All'"
                 class="ml-auto text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors">
             <i data-lucide="x" class="w-3 h-3"></i> Reset
         </button>
@@ -120,7 +145,7 @@
     </div>
 
     <!-- Result count -->
-    <p ng-if="!isLoading && (tenantContractFilter !== 'All' || tenantLiveStatusFilter !== 'All' || tenantSearchQuery)"
+    <p ng-if="!isLoading && (tenantContractFilter !== 'All' || tenantLiveStatusFilter !== 'All' || tenantOccupancyFilter !== 'All' || tenantSearchQuery)"
        class="text-xs text-slate-400 mb-3">
         Showing <span class="text-slate-700 font-medium">{{ filteredTenants().length }}</span> of {{ tenants.length }} tenants
     </p>
@@ -159,7 +184,7 @@
                             </div>
                         </td>
                         <td class="px-5 py-4"><div class="h-4 w-12 bg-slate-200 rounded"></div></td>
-                        <td class="px-5 py-4"><div class="h-6 w-20 bg-slate-200 rounded-full"></div></td>
+                        <td class="px-5 py-4"><div class="h-6 w-24 bg-slate-200 rounded-full"></div></td>
                         <td class="px-5 py-4"><div class="h-4 w-28 bg-slate-200 rounded"></div></td>
                         <td class="px-5 py-4"><div class="h-6 w-20 bg-slate-200 rounded-full"></div></td>
                         <td class="px-5 py-4"><div class="h-6 w-20 bg-slate-200 rounded-full"></div></td>
@@ -202,6 +227,7 @@
                 <tbody class="divide-y divide-slate-50">
                     <tr ng-repeat="t in filteredTenants()" ng-class="{'opacity-60': t.isTerminated}" class="hover:bg-slate-50 transition-colors">
 
+                        <!-- Tenant ID -->
                         <td class="px-5 py-3 whitespace-nowrap">
                             <span ng-if="t.tenantNumber" class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 border border-green-100 rounded-lg text-xs font-mono font-semibold tracking-wide">
                                 <i data-lucide="hash" class="w-3 h-3 text-green-500"></i>{{ t.tenantNumber }}
@@ -209,6 +235,7 @@
                             <span ng-if="!t.tenantNumber" class="text-slate-300 text-xs">—</span>
                         </td>
 
+                        <!-- Tenant -->
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0"
@@ -227,19 +254,36 @@
                             </div>
                         </td>
 
+                        <!-- Unit -->
                         <td class="px-5 py-3 text-sm text-slate-600 whitespace-nowrap">{{ t.unit }}</td>
 
+                        <!-- Occupancy: Single / Household / Bedspace -->
                         <td class="px-5 py-3 whitespace-nowrap">
-                            <span ng-if="t.occupancyType === 'with_others'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium bg-green-50 text-green-700 border-green-100">
-                                <i data-lucide="users" class="w-3 h-3"></i>+{{ t.additionalOccupantsCount }} co-occupant{{ t.additionalOccupantsCount !== 1 ? 's' : '' }}
+                            <span ng-if="t.occupancyTypeId === 1"
+                                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium bg-slate-50 text-slate-500 border-slate-200">
+                                <i data-lucide="user" class="w-3 h-3"></i>Single
                             </span>
-                            <span ng-if="t.occupancyType !== 'with_others'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium bg-slate-50 text-slate-500 border-slate-200">
-                                <i data-lucide="user" class="w-3 h-3"></i>Solo
+
+                            <span ng-if="t.occupancyTypeId === 2"
+                                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium bg-green-50 text-green-700 border-green-100">
+                                <i data-lucide="users" class="w-3 h-3"></i>Household · {{ t.totalOccupants }}/{{ t.maxOccupants }}
+                            </span>
+
+                            <span ng-if="t.occupancyTypeId === 3"
+                                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium bg-blue-50 text-blue-700 border-blue-100">
+                                <i data-lucide="bed" class="w-3 h-3"></i>Bedspace · {{ t.totalOccupants }}/{{ t.maxOccupants }}
+                            </span>
+
+                            <span ng-if="t.isJoinable"
+                                  class="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium bg-amber-50 text-amber-700 border-amber-100">
+                                {{ t.slotsOpen }} open
                             </span>
                         </td>
 
+                        <!-- Lease Period -->
                         <td class="px-5 py-3 text-xs text-slate-500 whitespace-nowrap">{{ t.leaseStart }} &rarr; {{ t.leaseEnd }}</td>
 
+                        <!-- Days Left -->
                         <td class="px-5 py-3 whitespace-nowrap">
                             <span ng-if="t.daysLeft !== null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium" ng-class="getDaysLeftClass(t.daysLeft)">
                                 <i data-lucide="clock" class="w-3 h-3"></i>{{ t.daysLeft < 0 ? (t.daysLeft * -1) + 'd ago' : t.daysLeft + 'd left' }}
@@ -247,6 +291,7 @@
                             <span ng-if="t.daysLeft === null" class="text-slate-400 text-xs">—</span>
                         </td>
 
+                        <!-- Contract -->
                         <td class="px-5 py-3 whitespace-nowrap">
                             <span ng-if="t.contractType" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium" ng-class="getContractClass(t.contractType)">
                                 <i data-lucide="clock" class="w-2.5 h-2.5"></i>{{ t.contractType }}
@@ -254,26 +299,41 @@
                             <span ng-if="!t.contractType" class="text-slate-300 text-xs">—</span>
                         </td>
 
+                        <!-- Status -->
                         <td class="px-5 py-3 whitespace-nowrap">
                             <span class="px-2 py-1 rounded-full text-xs font-medium" ng-class="getStatusClass(t.liveStatus)">
                                 {{ t.liveStatus }}
                             </span>
                         </td>
 
+                        <!-- Payment -->
                         <td class="px-5 py-3 whitespace-nowrap">
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium" ng-class="getPaymentClass(t.latestPaymentStatus)">
                                 <i data-lucide="credit-card" class="w-2.5 h-2.5"></i>{{ t.latestPaymentStatus === 'None' ? 'No Record' : t.latestPaymentStatus }}
                             </span>
                         </td>
 
+                        <!-- IDs -->
                         <td class="px-5 py-3 whitespace-nowrap">
                             <span class="text-xs px-2 py-0.5 rounded-full" ng-class="t.idFilesCount > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-400'">
                                 {{ t.idFilesCount }} ID{{ t.idFilesCount !== 1 ? 's' : '' }}
                             </span>
                         </td>
 
+                        <!-- Actions -->
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-2">
+                                <button ng-if="t.isJoinable" ng-click="triggerEditTenant(t)"
+                                        title="Add a bedspacer to this unit"
+                                        class="p-1.5 rounded-lg hover:bg-blue-50 text-blue-400 hover:text-blue-600 transition-all">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <line x1="19" x2="19" y1="8" y2="14" />
+                                        <line x1="22" x2="16" y1="11" y2="11" />
+                                    </svg>
+                                </button>
+
                                 <button ng-click="triggerEditTenant(t)" class="p-1.5 rounded-lg hover:bg-green-50 text-slate-400 hover:text-green-600 transition-all">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -302,15 +362,16 @@
     </div>
 </div>
 
-<!-- (Modals remain unchanged below) -->
-<!--Tenant Editor Modal-->
+<!-- ============================================================ -->
+<!-- TENANT EDITOR MODAL                                          -->
+<!-- ============================================================ -->
 <div ng-show="editorModal" ng-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
 
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <h2 class="text-slate-900 font-semibold text-base">{{ editingTenant ? 'Edit ' + editingTenant.name : 'Add New Tenant' }}</h2>
-            <button ng-click="editorModal = false" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all">
+            <button ng-click="editorModal = false" ng-disabled="savingTenant || readingIdFile" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
         </div>
@@ -330,37 +391,84 @@
                 <span class="text-xs text-green-500 bg-green-100 px-2 py-0.5 rounded-full">Auto-assigned</span>
             </div>
 
-            <!-- Occupancy Type -->
+            <!-- Occupancy Type: Single / Household / Bedspace -->
             <div>
                 <label class="block text-sm text-slate-700 font-medium mb-2">Occupancy Type *</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <!-- 1 for Solo -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+                    <!-- 1: Single Occupant -->
                     <button type="button" ng-click="occupancyTypeId = 1"
                             ng-class="occupancyTypeId === 1 ? 'border-green-500 bg-green-50' : 'border-slate-200 bg-white hover:border-slate-300'"
                             class="flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all">
                         <div ng-class="occupancyTypeId === 1 ? 'bg-green-100' : 'bg-slate-100'"
                              class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" ng-class="occupancyTypeId === 1 ? 'text-green-600' : 'text-slate-400'"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                 class="w-4 h-4" ng-class="occupancyTypeId === 1 ? 'text-green-600' : 'text-slate-400'">
+                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold" ng-class="occupancyTypeId === 1 ? 'text-green-800' : 'text-slate-700'">Solo</p>
-                            <p class="text-xs text-slate-400 mt-0.5">Only the primary tenant occupies the unit</p>
+                            <p class="text-sm font-semibold" ng-class="occupancyTypeId === 1 ? 'text-green-800' : 'text-slate-700'">Single Occupant</p>
+                            <p class="text-xs text-slate-400 mt-0.5">One tenant occupies the whole unit</p>
                         </div>
                     </button>
-                    <!-- 2 for With Others -->
+
+                    <!-- 2: Household -->
                     <button type="button" ng-click="occupancyTypeId = 2"
-                            ng-class="occupancyTypeId === 2 ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'"
+                            ng-class="occupancyTypeId === 2 ? 'border-green-500 bg-green-50' : 'border-slate-200 bg-white hover:border-slate-300'"
                             class="flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all">
-                        <div ng-class="occupancyTypeId === 2 ? 'bg-blue-100' : 'bg-slate-100'"
+                        <div ng-class="occupancyTypeId === 2 ? 'bg-green-100' : 'bg-slate-100'"
                              class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" ng-class="occupancyTypeId === 2 ? 'text-blue-600' : 'text-slate-400'"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                 class="w-4 h-4" ng-class="occupancyTypeId === 2 ? 'text-green-600' : 'text-slate-400'">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold" ng-class="occupancyTypeId === 2 ? 'text-blue-800' : 'text-slate-700'">With Additional Tenants</p>
-                            <p class="text-xs text-slate-400 mt-0.5">Primary tenant + co-occupants share the unit</p>
+                            <p class="text-sm font-semibold" ng-class="occupancyTypeId === 2 ? 'text-green-800' : 'text-slate-700'">Household</p>
+                            <p class="text-xs text-slate-400 mt-0.5">A family or related group on one lease</p>
+                        </div>
+                    </button>
+
+                    <!-- 3: Bedspace -->
+                    <button type="button" ng-click="occupancyTypeId = 3"
+                            ng-class="occupancyTypeId === 3 ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'"
+                            class="flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all">
+                        <div ng-class="occupancyTypeId === 3 ? 'bg-blue-100' : 'bg-slate-100'"
+                             class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                 class="w-4 h-4" ng-class="occupancyTypeId === 3 ? 'text-blue-600' : 'text-slate-400'">
+                                <path d="M2 4v16" />
+                                <path d="M2 8h18a2 2 0 0 1 2 2v10" />
+                                <path d="M2 17h20" />
+                                <path d="M6 8v9" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold" ng-class="occupancyTypeId === 3 ? 'text-blue-800' : 'text-slate-700'">Bedspace</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Unrelated renters; slots fill over time</p>
                         </div>
                     </button>
                 </div>
+            </div>
+
+            <!-- Bedspace explainer + live slot counter -->
+            <div ng-show="occupancyTypeId === 3" ng-cloak class="border border-blue-100 bg-blue-50/50 rounded-2xl p-4">
+                <p class="text-sm text-blue-800 font-semibold mb-1">Bedspace unit</p>
+                <p class="text-xs text-slate-500">
+                    The main tenant holds the lease. Bedspacers are added as occupants below — you can come back
+                    and add more later while slots remain open.
+                </p>
+                <p ng-if="selectedUnitInfo" class="text-xs mt-2 font-medium"
+                   ng-class="selectedUnitInfo.slotsOpen > 0 ? 'text-blue-700' : 'text-red-600'">
+                    Capacity: {{ selectedUnitInfo.used }} / {{ selectedUnitInfo.max }} filled
+                    <span ng-if="selectedUnitInfo.slotsOpen > 0">· {{ selectedUnitInfo.slotsOpen }} slot(s) still open</span>
+                    <span ng-if="selectedUnitInfo.slotsOpen === 0">· unit is full</span>
+                </p>
             </div>
 
             <!-- Basic Fields -->
@@ -389,28 +497,28 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm text-slate-700 font-medium mb-1">Assigned Unit</label>
+                    <label class="block text-sm text-slate-700 font-medium mb-1">Assigned Unit *</label>
                     <select id="fieldUnitId"
                             ng-model="unitId"
                             ng-change="onUnitChange()"
-                            ng-options="u.Uid as (u.unitName + ' (Available)') for u in units | filter:shouldShowUnit"
+                            ng-options="u.Uid as unitOptionLabel(u) for u in units | filter:shouldShowUnit"
                             class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                        <option value="">Select an available unit</option>
+                        <option value="">Select a unit</option>
                     </select>
 
-                    <p ng-if="unitId" class="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <p ng-if="unitId && selectedUnitInfo" class="text-xs text-amber-600 mt-1 flex items-center gap-1">
                         <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>
-                        This unit will be marked as <strong>occupied</strong> upon saving.
+                        Capacity {{ selectedUnitInfo.max }} — up to {{ maxCoOccupantsLimit }} additional occupant(s).
                     </p>
 
-                    <!-- Message if no units are available -->
                     <p ng-if="(units | filter:shouldShowUnit).length === 0" class="text-xs text-red-500 mt-1 flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg> No vacant units available.
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
+                        No vacant units. To add a bedspacer, edit the unit's existing tenant instead.
                     </p>
                 </div>
 
                 <div>
-                    <label class="block text-sm text-slate-700 font-medium mb-1">Lease Start</label>
+                    <label class="block text-sm text-slate-700 font-medium mb-1">Lease Start *</label>
                     <input type="date" id="fieldLeaseStart" ng-model="leaseStart"
                            ng-change="updateMinLeaseEnd()"
                            class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
@@ -446,48 +554,64 @@
                     <p class="text-[10px] text-right mt-1" ng-class="occupation.length >= 25 ? 'text-red-500 font-bold' : 'text-slate-400'">{{ occupation.length || 0 }}/25</p>
                 </div>
 
+                <!-- Portal Password: locked when editing -->
                 <div>
                     <label class="block text-sm text-slate-700 font-medium mb-1">Portal Password</label>
-                    <input type="text" id="fieldPasswordHash" ng-model="passwordHash" placeholder="Tenant login password" maxlength="20"
-                           class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <input type="password" id="fieldPasswordHash" ng-model="passwordHash"
+                           ng-disabled="editingTenant"
+                           placeholder="{{ editingTenant ? '••••••••' : 'Set a login password' }}"
+                           maxlength="20"
+                           ng-class="editingTenant ? 'opacity-60 cursor-not-allowed bg-slate-100' : 'bg-slate-50'"
+                           class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+
                     <div class="flex justify-between items-center mt-1">
-                        <p class="text-slate-400 text-xs">Default: <span class="font-mono">123</span></p>
-                        <p class="text-[10px]" ng-class="passwordHash.length >= 20 ? 'text-red-500 font-bold' : 'text-slate-400'">{{ passwordHash.length || 0 }}/20</p>
+                        <p ng-if="editingTenant" class="text-slate-400 text-xs flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                            Password can't be changed here.
+                        </p>
+                        <p ng-if="!editingTenant" class="text-slate-400 text-xs">Default: <span class="font-mono">123</span></p>
+                        <p ng-if="!editingTenant" class="text-[10px]" ng-class="passwordHash.length >= 20 ? 'text-red-500 font-bold' : 'text-slate-400'">{{ passwordHash.length || 0 }}/20</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Additional Occupants -->
-            <div ng-show="occupancyTypeId === 2" ng-cloak class="border border-blue-100 bg-blue-50/50 rounded-2xl p-4 space-y-4">
+            <!-- ======================================================== -->
+            <!-- OCCUPANTS: shown for Household (2) AND Bedspace (3)      -->
+            <!-- ======================================================== -->
+            <div ng-show="occupancyTypeId === 2 || occupancyTypeId === 3" ng-cloak
+                 class="border border-blue-100 bg-blue-50/50 rounded-2xl p-4 space-y-4">
 
-                <!-- HEADER -->
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-blue-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                        <p class="text-sm text-blue-800 font-semibold">Additional Occupants</p>
+                        <p class="text-sm text-blue-800 font-semibold">
+                            {{ occupancyTypeId === 3 ? 'Bedspacers' : 'Additional Occupants' }}
+                        </p>
 
-                        <!-- Dynamic Max Counter -->
                         <span class="text-xs px-2 py-0.5 rounded-full transition-colors"
                               ng-class="{'bg-red-100 text-red-600': co_occupants.length >= maxCoOccupantsLimit, 'bg-blue-100 text-blue-500': co_occupants.length < maxCoOccupantsLimit}">
                             {{ co_occupants.length || 0 }} / {{ maxCoOccupantsLimit || 0 }} added
                         </span>
                     </div>
 
-                    <!-- Add Button -->
                     <button type="button"
                             ng-click="addCoOccupant()"
-                            ng-disabled="co_occupants.length >= maxCoOccupantsLimit"
+                            ng-disabled="!unitId || co_occupants.length >= maxCoOccupantsLimit"
                             class="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg> Add Occupant
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>
+                        {{ occupancyTypeId === 3 ? 'Add Bedspacer' : 'Add Occupant' }}
                     </button>
                 </div>
 
-                <!-- THE FORMS -->
+                <p ng-if="!unitId" class="text-xs text-amber-600">
+                    Select an assigned unit first so the system knows the capacity.
+                </p>
+
                 <div ng-repeat="occ in co_occupants track by $index" class="bg-white border border-blue-100 rounded-xl p-4 space-y-3">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-xs text-blue-600 font-semibold flex items-center gap-1.5">
                             <div class="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-bold">{{ $index + 1 }}</div>
-                            Co-occupant #{{ $index + 1 }}
+                            {{ occupancyTypeId === 3 ? 'Bedspacer' : 'Co-occupant' }} #{{ $index + 1 }}
                         </span>
                         <button type="button" ng-click="removeCoOccupant($index)"
                                 class="p-1 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
@@ -518,63 +642,65 @@
                     </div>
                 </div>
 
-                <!-- EMPTY STATE -->
                 <div ng-if="!co_occupants || co_occupants.length === 0" class="text-center py-4 text-blue-400 text-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 mx-auto mb-1 opacity-50"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                    <p>No co-occupants added yet.</p>
-                    <p class="text-xs mt-0.5" ng-if="maxCoOccupantsLimit > 0">Click "Add Occupant" to add up to {{ maxCoOccupantsLimit }}.</p>
+                    <p ng-if="occupancyTypeId === 2">No co-occupants added yet.</p>
+                    <p ng-if="occupancyTypeId === 3">No bedspacers yet — slots stay open until filled.</p>
+                    <p class="text-xs mt-0.5" ng-if="maxCoOccupantsLimit > 0">You can add up to {{ maxCoOccupantsLimit }}.</p>
                 </div>
             </div>
 
-            <!-- ID Upload -->
+            <!-- ID Upload — handles images, PDFs, and disk paths -->
             <div>
-                <label class="block text-sm text-slate-700 font-medium mb-2">
-                    ID Documents (max 2)
-                </label>
+                <label class="block text-sm text-slate-700 font-medium mb-2">ID Documents (max 2)</label>
 
                 <div class="flex gap-3 flex-wrap">
-
-                    <!-- 1. The ID Previews -->
                     <div ng-repeat="file in idFiles track by $index"
-                         class="relative w-28 h-20 rounded-xl overflow-hidden border border-slate-200 group transition-all duration-300">
+                         class="relative w-28 h-20 rounded-xl overflow-hidden border border-slate-200 group transition-all duration-300 bg-slate-50">
 
-                        <img ng-src="{{ file.url }}" alt="ID Document {{$index + 1}}" class="w-full h-full object-cover" />
+                        <!-- Image preview -->
+                        <img ng-if="!isPdf(file.url)" ng-src="{{ fileSrc(file.url) }}"
+                             alt="ID Document {{$index + 1}}"
+                             class="w-full h-full object-cover" />
 
-                        <!-- The Hover "X" Button -->
-                        <button type="button" ng-click="removeIdFile($index)"
-                                class="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                        <!-- PDF placeholder (opens in a new tab) -->
+                        <a ng-if="isPdf(file.url)" ng-href="{{ fileSrc(file.url) }}" target="_blank"
+                           class="w-full h-full flex flex-col items-center justify-center gap-1 text-red-500 hover:bg-red-50 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /></svg>
+                            <span class="text-[10px] font-medium">View PDF</span>
+                        </a>
+
+                        <button type="button" ng-click="removeIdFile($index)" ng-disabled="savingTenant"
+                                class="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </div>
 
-                    <!-- 2. The Upload ID Button -->
                     <label for="idFileInput" ng-show="!idFiles || idFiles.length < 2" ng-cloak
                            class="w-28 h-20 rounded-xl border-2 border-dashed border-slate-200 hover:border-green-300 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-green-500 transition-all cursor-pointer">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                         <span class="text-xs">Upload ID</span>
                     </label>
-
                 </div>
 
-                <!-- 3. The Hidden File Input -->
-                <!-- Removed 'multiple' and '.pdf' from accept -->
-                <input type="file" id="idFileInput" accept="image/*" class="hidden"
+                <input type="file" id="idFileInput" accept="image/jpeg,image/png,image/gif,image/bmp,image/tiff" class="hidden" ng-disabled="readingIdFile || savingTenant"
                        onchange="angular.element(this).scope().handleIdUpload(this.files)" />
-                <p class="text-slate-400 text-xs mt-1">Accepts images only. Max 2 files.</p>
+                <p class="text-slate-400 text-xs mt-1">JPG, PNG, GIF, BMP, or TIFF. Max 2 files, 10 MB each.</p>
             </div>
 
         </div>
 
         <!-- Footer -->
         <div class="flex gap-3 justify-end px-6 py-4 border-t border-slate-100">
-            <button ng-click="editorModal = false" class="px-4 py-2 rounded-xl text-sm text-slate-600 hover:bg-slate-100 border border-slate-200 transition-all">Cancel</button>
-            <button ng-click="saveTenant(selectedTenant)" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all">
-                {{ editingTenant ? 'Save Changes' : 'Add Tenant' }}
+            <button ng-click="editorModal = false" ng-disabled="savingTenant || readingIdFile" class="px-4 py-2 rounded-xl text-sm text-slate-600 hover:bg-slate-100 border border-slate-200 transition-all">Cancel</button>
+            <button ng-click="saveTenant(selectedTenant)" ng-disabled="savingTenant || readingIdFile" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all">
+                {{ savingTenant ? 'Saving...' : (readingIdFile ? 'Loading ID...' : (editingTenant ? 'Save Changes' : 'Add Tenant')) }}
             </button>
         </div>
     </div>
 </div>
 
+<!-- Delete confirmation -->
 <div ng-show="deleteTenantConfirm" ng-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
         <h3 class="text-slate-900 font-semibold text-base mb-2">Remove Tenant</h3>

@@ -20,7 +20,7 @@
 
     <div ng-if="!isLoading" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button ng-repeat="type in auditTypes"
-                ng-click="setFilter(type)"
+                ng-click="setAuditFilter(type)"
                 class="bg-white rounded-2xl px-4 py-3 border shadow-sm text-left transition-all focus:outline-none"
                 ng-class="filter === type ? 'border-green-300 ring-2 ring-green-200' : 'border-slate-100 hover:border-slate-200'">
 
@@ -56,7 +56,7 @@
 
             <div class="flex gap-1.5 flex-wrap">
                 <button ng-repeat="f in typeFilters"
-                        ng-click="setFilter(f.id)"
+                        ng-click="setAuditFilter(f.id)"
                         class="px-3 py-2 rounded-xl text-xs font-medium transition-all capitalize focus:outline-none"
                         ng-class="filter === f.id ? 'bg-green-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
                     {{ f.label }}

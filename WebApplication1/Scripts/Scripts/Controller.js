@@ -1,10 +1,48 @@
 ﻿app.controller('controller', function (service, $scope, $timeout, $interval, $http, $sce, $window) {
+
+    // ==========================================
+    // 0. OCCUPANCY TYPE CONSTANTS
+    //    1 = Single Occupant (one tenant, whole unit)
+    //    2 = Household       (family/relatives, co-occupants upfront)
+    //    3 = Bedspace        (unrelated renters, co-occupants added over time)
+    //    Types 2 and 3 BOTH store occupants in the co_occupant table.
+    // ==========================================
+    $scope.OCC_SINGLE = 1;
+    $scope.OCC_HOUSEHOLD = 2;
+    $scope.OCC_BEDSPACE = 3;
+
+    $scope.usesCoOccupants = function (typeId) {
+        return typeId === $scope.OCC_HOUSEHOLD || typeId === $scope.OCC_BEDSPACE;
+    };
+
+    $scope.occupancyLabel = function (typeId) {
+        if (typeId === $scope.OCC_SINGLE) return 'Single Occupant';
+        if (typeId === $scope.OCC_HOUSEHOLD) return 'Household';
+        if (typeId === $scope.OCC_BEDSPACE) return 'Bedspace';
+        return '\u2014';
+    };
+
+    $scope.getOccupancyBadgeClass = function (typeId) {
+        if (typeId === $scope.OCC_SINGLE) return 'bg-slate-50 text-slate-500 border-slate-200';
+        if (typeId === $scope.OCC_HOUSEHOLD) return 'bg-green-50 text-green-700 border-green-100';
+        if (typeId === $scope.OCC_BEDSPACE) return 'bg-blue-50 text-blue-700 border-blue-100';
+        return 'bg-slate-50 text-slate-500 border-slate-200';
+    };
+
+    // ==========================================
+    // 1. SUPERADMIN DASHBOARD
+    // ==========================================
     $scope.initDashboard = function () {
         $scope.isLoading = true;
 
         service.GetAdminDashboardService().then(function (response) {
             var res = response.data;
             console.log(" Dashboard Data:", res);
+
+            if (res && res.success === false) {
+                $scope.showToast(res.message || "Unable to load dashboard data.", "error");
+                return;
+            }
 
             $scope.activeManagers = res.activeManagers || 0;
             $scope.lockedManagers = res.lockedManagers || 0;
@@ -14,14 +52,11 @@
             $scope.warningAlerts = res.warningAlerts || 0;
             $scope.propertyManagers = res.propertyManagers || [];
             $scope.recentActivity = res.recentActivity || [];
+        }, function () {
+            $scope.showToast("Unable to load dashboard data.", "error");
         }).finally(function () {
             $scope.isLoading = false;
         });
-    };
-
-    // --- Navigation ---
-    $scope.goTo = function (section) {
-        $window.location.href = '/' + section; // e.g. goTo('Managers') -> /Managers
     };
 
     // --- "Jane Cruz" -> "JC" ---
@@ -66,11 +101,10 @@
             hoverBackgroundColor: '#94a3b8'
         }
     ];
+
     // ==========================================
     // GREENBOT CHAT LOGIC
     // ==========================================
-    //PROPERTY MANAGER
-
     $scope.isBotTyping = false;
     $scope.initChat = function () {
         $scope.chatOpen = false;
@@ -80,8 +114,6 @@
             "Show pending bookings",
             "List expiring leases"
         ];
-
-        // Setup the initial welcome message
         $scope.clearChat();
     };
 
@@ -96,14 +128,10 @@
         ];
     };
 
-
-
-
     $scope.chatHistory = [];
     $scope.userMessage = "";
 
     $scope.sendMessage = function (suggestion) {
-        // Push user message immediately to UI
         $scope.chatMessages.push({
             sender: "user",
             text: $scope.userMessage || suggestion,
@@ -114,21 +142,18 @@
         var mes = $scope.userMessage || suggestion;
         var convo = JSON.stringify($scope.chatHistory);
 
-        $scope.userMessage = "";  // clear input early
+        $scope.userMessage = "";
 
         service.sendMessageAIService(mes, convo)
             .then(function (response) {
                 if (response.data.success) {
-                    // Push bot reply to UI
-
                     $scope.chatMessages.push({
                         sender: "bot",
                         text: response.data.reply,
                         time: new Date()
                     });
-                    $scope.chatHistory = response.data.history;  // update history
+                    $scope.chatHistory = response.data.history;
                 } else {
-
                     $scope.chatMessages.push({
                         sender: "bot",
                         text: response.data.message,
@@ -137,8 +162,6 @@
                 }
             })
             .catch(function () {
-           
-
                 $scope.chatMessages.push({
                     sender: "bot",
                     text: "Something went wrong. Please try again.",
@@ -146,7 +169,6 @@
                 });
             }).finally(function () {
                 $scope.isBotTyping = false;
-
             });
     };
 
@@ -188,11 +210,10 @@
                 });
             }).finally(function () {
                 $scope.isBotTyping = false;
-
             });
     };
 
-    //Renter
+    // Renter
     $scope.initRenterChat = function () {
         $scope.chatOpen = false;
         $scope.unread = 0;
@@ -201,7 +222,7 @@
             "Budget-friendly units",
             "Best value for money",
             "Affordable but spacious units",
-            "Worth-it units under ₱20,000",
+            "Worth-it units under \u20b120,000",
             "Comfortable units for a low budget"
         ];
 
@@ -217,7 +238,7 @@
     };
 
     // ==========================================
-    // 1. INITIALIZATION & DEFAULT STATE
+    // 2. INITIALIZATION & DEFAULT STATE
     // ==========================================
     $scope.thisMonthhs = new Date();
     $scope.loading = false;
@@ -245,6 +266,7 @@
     $scope.tenantLiveStatusFilter = 'All';
     $scope.tenantSortAsc = true;
     $scope.tenantContractFilter = 'All';
+    $scope.tenantOccupancyFilter = 'All';
 
     // Unit Defaults
     $scope.beds = 'Studio';
@@ -268,7 +290,6 @@
     $scope.bardata = [[], []];
     $scope.barseries = ['Occupied', 'Vacant'];
 
-    // Override the datasets to FORCE the labels
     $scope.datasetOverride = [
         { label: 'Occupied' },
         { label: 'Vacant' }
@@ -281,7 +302,7 @@
     };
 
     // ==========================================
-    // 2. UI & TOAST NOTIFICATIONS
+    // 3. UI & TOAST NOTIFICATIONS
     // ==========================================
     $scope.toast = { toastShow: false, message: '', type: 'error' };
 
@@ -296,7 +317,7 @@
     };
 
     // ==========================================
-    // 3. NAVIGATION
+    // 4. NAVIGATION
     // ==========================================
     $scope.goTo = function (page) {
         var routes = {
@@ -320,7 +341,7 @@
     };
 
     // ==========================================
-    // 4. AUTHENTICATION
+    // 5. AUTHENTICATION
     // ==========================================
     function startCooldown() {
         $scope.resendCooldown = 30;
@@ -338,7 +359,7 @@
         var authData = { email: $scope.email, password: $scope.password };
         service.authService(authData).then(function (response) {
             if (response.data.success) {
-                $scope.userRole = response.data.role; // Store role from backend
+                $scope.userRole = response.data.role;
                 $scope.step = 'verify';
                 $scope.otp = [];
                 startCooldown();
@@ -357,7 +378,6 @@
         }
     };
 
-
     $scope.verifyCode = function () {
         var code = $scope.otp.join('');
 
@@ -369,8 +389,6 @@
 
         service.verifyCodeService(code).then(function (response) {
             if (response.data.success) {
-
-                // Use the role returned directly from the C# VerifyCode response
                 var role = response.data.role || $scope.userRole;
 
                 if (role === 1) {
@@ -388,7 +406,6 @@
                 else {
                     $scope.showToast("Unknown role. Access denied.", "error");
                 }
-
             } else {
                 $scope.showToast(response.data.message, "error");
             }
@@ -396,6 +413,7 @@
             $scope.loading = false;
         });
     };
+
     $scope.resend = function () {
         if ($scope.resendCooldown > 0) return;
         $scope.otp = [];
@@ -403,7 +421,7 @@
     };
 
     // ==========================================
-    // 5. DASHBOARD & DATA FETCHING
+    // 6. PM DASHBOARD & DATA FETCHING
     // ==========================================
     $scope.getDataNum = function () {
         service.GetDashboardDataService().then(function (response) {
@@ -416,6 +434,9 @@
             $scope.totalPayment = res.totalPayment || 0;
             $scope.recentBookings = res.recentBookings || [];
             $scope.totalVacant = res.currentVacantUnits || 0;
+
+            // Bedspace: open bed slots across partially-filled units
+            $scope.availableJoinSlots = res.availableJoinSlots || 0;
 
             const monthNames = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -434,7 +455,7 @@
                 $scope.barseries = ['Occupied Units', 'Vacant Units'];
             }
         }).finally(function () {
-            $scope.isLoading = false; // Turns off the skeleton loader
+            $scope.isLoading = false;
         });
     };
 
@@ -448,7 +469,7 @@
         });
     };
 
-    $scope.loadAllAmenities = function() {
+    $scope.loadAllAmenities = function () {
         $http.get('/System/GetAllAmenities').then(function (response) {
             if (response.data.success) {
                 $scope.amenityOptions = response.data.data.map(function (amenity) {
@@ -460,18 +481,17 @@
                 });
             }
         });
-    }
-    
+    };
 
     // ==========================================
-    // 6. UNIT MANAGEMENT (CRUD & Filters)
+    // 7. UNIT MANAGEMENT (CRUD & Filters)
     // ==========================================
     $scope.getAllUnits = function () {
         service.GetAllUnitService().then(function (response) {
             $scope.units = response.data.data;
             $scope.totalUnits = $scope.units.length;
         }).finally(function () {
-            $scope.isLoading = false; // Turns off the skeleton loader
+            $scope.isLoading = false;
         });
     };
 
@@ -601,44 +621,127 @@
     };
 
     // ==========================================
-    // 7. TENANT MANAGEMENT (CRUD & Filters)
+    // 8. TENANT MANAGEMENT (CRUD & Filters)
+    //    Bedspace-aware: types 2 and 3 both use co_occupant rows.
     // ==========================================
     $scope.getAllTenants = function () {
         service.GetAllTenantService().then(function (response) {
             $scope.tenants = response.data.data;
             $scope.totalTenants = $scope.tenants.length;
         }).finally(function () {
-            // Turns off the skeleton table once data is fully fetched
             $scope.isLoading = false;
         });
     };
 
+    // ---- Unit occupancy helpers ----
+    // Headcount for a unit = 1 main tenant + that tenant's co-occupants.
+    $scope.getUnitOccupancy = function (unit) {
+        var mainTenant = ($scope.tenants || []).find(function (t) {
+            return t.unitId === unit.Uid && t.liveStatus !== 'Terminated' && !t.isTerminated;
+        });
+
+        var max = parseInt(unit.maxOccupants, 10) || 1;
+
+        if (!mainTenant) {
+            return {
+                hasTenant: false,
+                typeId: null,
+                count: 0,
+                max: max,
+                slotsOpen: max,
+                isEmpty: true,
+                isBedspace: false,
+                joinable: false
+            };
+        }
+
+        var count = 1 + (mainTenant.additionalOccupantsCount || 0);
+        var isBedspace = mainTenant.occupancyTypeId === $scope.OCC_BEDSPACE;
+
+        return {
+            hasTenant: true,
+            typeId: mainTenant.occupancyTypeId,
+            mainTenant: mainTenant,
+            count: count,
+            max: max,
+            slotsOpen: Math.max(0, max - count),
+            isEmpty: false,
+            isBedspace: isBedspace,
+            joinable: isBedspace && count < max
+        };
+    };
+
+    // Fill info for the table badge (e.g. Bedspace 2/4)
+    $scope.getTenantUnitFill = function (t) {
+        if (!t.unitId || !$scope.units) return null;
+        var u = $scope.units.find(function (x) { return x.Uid === t.unitId; });
+        return u ? $scope.getUnitOccupancy(u) : null;
+    };
+
+    // Label for the Assigned Unit dropdown
+    $scope.unitOptionLabel = function (u) {
+        var occ = $scope.getUnitOccupancy(u);
+        if (occ.isEmpty) return u.unitName + ' (Vacant \u00b7 max ' + occ.max + ')';
+        return u.unitName;
+    };
+
+    // A NEW main tenant can only take a fully vacant unit.
+    // Joining a bedspace unit is done by EDITING its main tenant
+    // and adding a co-occupant there.
+    $scope.shouldShowUnit = function (unit) {
+        if ($scope.editingTenant && $scope.editingTenant.unitId === unit.Uid) return true;
+
+        var hasLiveTenant = ($scope.tenants || []).some(function (t) {
+            return t.unitId === unit.Uid && t.liveStatus !== 'Terminated' && !t.isTerminated;
+        });
+        return !hasLiveTenant;
+    };
+
     $scope.onUnitChange = function () {
+        $scope.selectedUnitInfo = null;
+
         if (!$scope.unitId) {
             $scope.maxCoOccupantsLimit = 0;
             return;
         }
 
-        var selectedUnit = $scope.units.find(function (u) {
-            return u.Uid === $scope.unitId;
-        });
-
-        if (selectedUnit && selectedUnit.maxOccupants > 0) {
-            $scope.maxCoOccupantsLimit = selectedUnit.maxOccupants - 1;
-            if ($scope.co_occupants && $scope.co_occupants.length > $scope.maxCoOccupantsLimit) {
-                $scope.co_occupants = $scope.co_occupants.slice(0, $scope.maxCoOccupantsLimit);
-                $scope.showToast("Co-occupants adjusted to fit the new unit's capacity.", "info");
-            }
-        } else {
+        var selectedUnit = ($scope.units || []).find(function (u) { return u.Uid === $scope.unitId; });
+        if (!selectedUnit) {
             $scope.maxCoOccupantsLimit = 0;
+            return;
+        }
+
+        var max = parseInt(selectedUnit.maxOccupants, 10) || 1;
+
+        // Capacity = 1 main tenant + N co-occupants
+        $scope.maxCoOccupantsLimit = Math.max(0, max - 1);
+
+        $scope.selectedUnitInfo = {
+            max: max,
+            used: 1 + (($scope.co_occupants || []).length),
+            slotsOpen: Math.max(0, max - 1 - (($scope.co_occupants || []).length))
+        };
+
+        if ($scope.co_occupants && $scope.co_occupants.length > $scope.maxCoOccupantsLimit) {
+            $scope.co_occupants = $scope.co_occupants.slice(0, $scope.maxCoOccupantsLimit);
+            $scope.showToast("Occupants trimmed to fit this unit's capacity.", "info");
         }
     };
 
+    // Keeps the live slot counter accurate as rows are added/removed
+    $scope.refreshSlotInfo = function () {
+        if (!$scope.selectedUnitInfo) return;
+        var used = 1 + (($scope.co_occupants || []).length);
+        $scope.selectedUnitInfo.used = used;
+        $scope.selectedUnitInfo.slotsOpen = Math.max(0, $scope.selectedUnitInfo.max - used);
+    };
+
+    // ---- Add / edit triggers ----
     $scope.triggerAddTenant = function () {
         $scope.editingTenant = null;
         $scope.selectedTenant = null;
         $scope.tenantNumber = '';
-        $scope.occupancyTypeId = 1;
+        $scope.occupancyTypeId = $scope.OCC_SINGLE;
         $scope.passwordHash = '123';
         $scope.name = '';
         $scope.email = '';
@@ -650,12 +753,81 @@
         $scope.leaseEnd = null;
         $scope.minLeaseEnd = null;
         $scope.maxCoOccupantsLimit = 0;
+        $scope.selectedUnitInfo = null;
         $scope.co_occupants = [];
         $scope.idFiles = [];
         $scope.deletedCoOccupants = [];
+        $scope.deletedDocumentIds = [];
         $scope.editorModal = true;
     };
 
+    $scope.triggerEditTenant = function (tenant) {
+        $scope.editorModal = true;
+        $scope.editingTenant = tenant;
+        $scope.selectedTenant = tenant.Tid;
+
+        $scope.occupancyTypeId = tenant.occupancyTypeId;
+        $scope.tenantNumber = tenant.tenantNumber;
+        $scope.name = tenant.name;
+        $scope.email = tenant.email;
+        $scope.phone = tenant.phone;
+        $scope.unitId = tenant.unitId;
+        $scope.address = tenant.address;
+        $scope.occupation = tenant.occupation;
+        $scope.passwordHash = tenant.passwordHash;
+        $scope.deletedCoOccupants = [];
+        $scope.deletedDocumentIds = [];
+
+        if (tenant.leaseStart) $scope.leaseStart = new Date(tenant.leaseStart);
+        if (tenant.leaseEnd) $scope.leaseEnd = new Date(tenant.leaseEnd);
+
+        $scope.updateMinLeaseEnd();
+
+        $scope.co_occupants = tenant.coOccupants ? angular.copy(tenant.coOccupants) : [];
+
+        var max = parseInt(tenant.maxOccupants, 10) || 1;
+        $scope.maxCoOccupantsLimit = Math.max(0, max - 1);
+        $scope.selectedUnitInfo = {
+            max: max,
+            used: 1 + $scope.co_occupants.length,
+            slotsOpen: Math.max(0, max - 1 - $scope.co_occupants.length)
+        };
+
+        if (tenant.idFiles && tenant.idFiles.length > 0) {
+            $scope.idFiles = tenant.idFiles.map(function (file) {
+                return { id: file.id, url: file.url };
+            });
+        } else {
+            $scope.idFiles = [];
+        }
+    };
+
+    // ---- Co-occupants (Household + Bedspace) ----
+    $scope.addCoOccupant = function () {
+        if (!$scope.co_occupants) $scope.co_occupants = [];
+
+        if ($scope.co_occupants.length >= $scope.maxCoOccupantsLimit) {
+            return $scope.showToast("This unit is already at full capacity.", "error");
+        }
+
+        $scope.co_occupants.push({ name: '', phone: '', address: '' });
+        $scope.refreshSlotInfo();
+
+        setTimeout(function () {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }, 50);
+    };
+
+    $scope.removeCoOccupant = function (index) {
+        var removedItem = $scope.co_occupants[index];
+        if (removedItem && removedItem.id) {
+            $scope.deletedCoOccupants.push(removedItem.id);
+        }
+        $scope.co_occupants.splice(index, 1);
+        $scope.refreshSlotInfo();
+    };
+
+    // ---- Filters / sorting ----
     $scope.filteredTenants = function () {
         var list = $scope.tenants || [];
 
@@ -679,6 +851,11 @@
                 return t.contractType === $scope.tenantContractFilter;
             });
         }
+        if ($scope.tenantOccupancyFilter !== 'All') {
+            list = list.filter(function (t) {
+                return t.occupancyTypeId === $scope.tenantOccupancyFilter;
+            });
+        }
 
         list = list.slice().sort((a, b) => $scope.tenantSortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
         $scope.totalTenants = list.length;
@@ -688,9 +865,8 @@
     $scope.toggleTenantSort = function () { $scope.tenantSortAsc = !$scope.tenantSortAsc; };
     $scope.setTenantStatus = function (val) { $scope.tenantStatusFilter = val; };
     $scope.setTenantLiveStatus = function (val) { $scope.tenantLiveStatusFilter = val; };
-    $scope.setTenantContract = function (val) {
-        $scope.tenantContractFilter = val;
-    };
+    $scope.setTenantContract = function (val) { $scope.tenantContractFilter = val; };
+    $scope.setTenantOccupancy = function (val) { $scope.tenantOccupancyFilter = val; };
 
     $scope.updateMinLeaseEnd = function () {
         if ($scope.leaseStart) {
@@ -711,75 +887,7 @@
         }
     };
 
-    $scope.triggerEditTenant = function (tenant) {
-        $scope.editorModal = true;
-        $scope.editingTenant = tenant;
-        $scope.selectedTenant = tenant.Tid;
-
-        $scope.occupancyTypeId = tenant.occupancyTypeId;
-        $scope.tenantNumber = tenant.tenantNumber;
-        $scope.name = tenant.name;
-        $scope.email = tenant.email;
-        $scope.phone = tenant.phone;
-        $scope.unitId = tenant.unitId;
-        $scope.address = tenant.address;
-        $scope.occupation = tenant.occupation;
-        $scope.passwordHash = tenant.passwordHash;
-        $scope.occupancyType = tenant.occupancyType;
-        $scope.deletedCoOccupants = [];
-
-        if (tenant.leaseStart) $scope.leaseStart = new Date(tenant.leaseStart);
-        if (tenant.leaseEnd) $scope.leaseEnd = new Date(tenant.leaseEnd);
-
-        $scope.updateMinLeaseEnd();
-
-        $scope.maxCoOccupantsLimit = (tenant.maxOccupants && tenant.maxOccupants > 0) ? (tenant.maxOccupants - 1) : 0;
-        $scope.co_occupants = tenant.coOccupants ? angular.copy(tenant.coOccupants) : [];
-        if (tenant.idFiles && tenant.idFiles.length > 0) {
-            $scope.idFiles = tenant.idFiles.map(function (file) {
-                return {
-                    id: file.id,
-                    url: file.url
-                };
-            });
-        } else {
-            $scope.idFiles = [];
-        }
-    };
-
-    $scope.addCoOccupant = function () {
-        if (!$scope.co_occupants) $scope.co_occupants = [];
-
-        if ($scope.co_occupants.length < $scope.maxCoOccupantsLimit) {
-            $scope.co_occupants.push({ name: '', phone: '', address: '' });
-            setTimeout(function () {
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-            }, 50);
-        }
-    };
-
-    $scope.removeCoOccupant = function (index) {
-        var removedItem = $scope.co_occupants[index];
-        if (removedItem.id) {
-            $scope.deletedCoOccupants.push(removedItem.id);
-        }
-        $scope.co_occupants.splice(index, 1);
-    };
-
-    $scope.shouldShowUnit = function (unit) {
-        if ($scope.editingTenant && $scope.editingTenant.unitId === unit.Uid) {
-            return true;
-        }
-
-        var isOccupied = false;
-        if ($scope.tenants) {
-            isOccupied = $scope.tenants.some(function (t) {
-                return t.unitId === unit.Uid && t.liveStatus !== 'Terminated';
-            });
-        }
-        return !isOccupied;
-    };
-
+    // ---- Badge helpers ----
     $scope.getDaysLeftClass = function (days) {
         if (days < 0) return 'bg-red-50 text-red-700 border-red-100';
         if (days <= 30) return 'bg-amber-50 text-amber-700 border-amber-100';
@@ -807,7 +915,10 @@
         return 'bg-slate-50 text-slate-500 border-slate-200';
     };
 
+    // ---- Save ----
     $scope.saveTenant = function (id) {
+        if ($scope.savingTenant) return;
+        if ($scope.readingIdFile) return $scope.showToast("Please wait for the ID image to finish loading.", "info");
         var formatToDateString = function (dateObj) {
             if (!dateObj) return null;
             var d = new Date(dateObj);
@@ -816,6 +927,38 @@
             var day = String(d.getDate()).padStart(2, '0');
             return year + '-' + month + '-' + day;
         };
+
+        // ---- Validation ----
+        if (!$scope.name) return $scope.showToast("Full Name is required", "error");
+        if (!$scope.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($scope.email)) return $scope.showToast("Valid email is required", "error");
+        if (!$scope.occupancyTypeId) return $scope.showToast("Please select an Occupancy Type", "error");
+        if (!$scope.unitId) return $scope.showToast("Please select a unit", "error");
+        if (!$scope.leaseStart) return $scope.showToast("Lease Start date is required", "error");
+
+        if ($scope.leaseStart && $scope.leaseEnd && new Date($scope.leaseEnd) <= new Date($scope.leaseStart)) {
+            return $scope.showToast("Lease End date must be after the Lease Start date", "error");
+        }
+
+        // Household must declare at least one occupant.
+        // Bedspace may start empty — slots fill over time.
+        if ($scope.occupancyTypeId === $scope.OCC_HOUSEHOLD) {
+            if (!$scope.co_occupants || $scope.co_occupants.length === 0) {
+                return $scope.showToast("A Household must have at least one additional occupant.", "error");
+            }
+        }
+
+        // Both Household and Bedspace validate whatever rows exist.
+        if ($scope.usesCoOccupants($scope.occupancyTypeId)) {
+            var rows = $scope.co_occupants || [];
+            for (var i = 0; i < rows.length; i++) {
+                if (!rows[i].name || !rows[i].phone) {
+                    return $scope.showToast("Occupant #" + (i + 1) + " must have a name and phone number.", "error");
+                }
+            }
+            if (rows.length > $scope.maxCoOccupantsLimit) {
+                return $scope.showToast("This unit only allows " + $scope.maxCoOccupantsLimit + " additional occupant(s).", "error");
+            }
+        }
 
         var tenantData = {
             name: $scope.name,
@@ -831,35 +974,28 @@
             deletedCoOccupants: $scope.deletedCoOccupants
         };
 
-        if (!$scope.name) return $scope.showToast("Full Name is required", "error");
-        if (!$scope.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($scope.email)) return $scope.showToast("Valid email is required", "error");
-        if (!$scope.occupancyTypeId) return $scope.showToast("Please select an Occupancy Type", "error");
-        if (!$scope.leaseStart) return $scope.showToast("Lease Start date is required", "error");
-
-        if ($scope.leaseStart && $scope.leaseEnd && new Date($scope.leaseEnd) <= new Date($scope.leaseStart)) {
-            return $scope.showToast("Lease End date must be after the Lease Start date", "error");
-        }
-
-        if ($scope.occupancyTypeId === 2) {
-            if (!$scope.co_occupants || $scope.co_occupants.length === 0) return $scope.showToast("Please add at least one additional occupant.", "error");
-            for (var i = 0; i < $scope.co_occupants.length; i++) {
-                if (!$scope.co_occupants[i].name || !$scope.co_occupants[i].phone) {
-                    return $scope.showToast("Co-occupant #" + (i + 1) + " must have a name and phone number.", "error");
-                }
-            }
-        }
+        // Single sends none; Household and Bedspace both send co-occupants.
+        var occupantsToSend = $scope.usesCoOccupants($scope.occupancyTypeId)
+            ? ($scope.co_occupants || [])
+            : [];
 
         var targetTid = id || ($scope.editingTenant ? $scope.editingTenant.Tid : null);
 
-        service.saveTenantService(tenantData, $scope.co_occupants, $scope.idFiles, targetTid).then(function (response) {
-            if (response.data.success) {
-                $scope.showToast(response.data.message, "success");
-                $scope.editorModal = false;
-                if (typeof $scope.getAllTenants === 'function') $scope.getAllTenants();
-            } else {
-                $scope.showToast(response.data.message || "Failed to save tenant.", "error");
-            }
-        }).finally(function () { $scope.editorModal = false; });
+        $scope.savingTenant = true;
+        service.saveTenantService(tenantData, occupantsToSend, $scope.idFiles, targetTid, $scope.deletedDocumentIds)
+            .then(function (response) {
+                if (response.data.success) {
+                    $scope.showToast(response.data.message, "success");
+                    $scope.editorModal = false;
+                    if (typeof $scope.getAllTenants === 'function') $scope.getAllTenants();
+                    if (typeof $scope.getAllUnits === 'function') $scope.getAllUnits();
+                } else {
+                    $scope.showToast(response.data.message || "Failed to save tenant.", "error");
+                }
+            }).catch(function (response) {
+                var message = response.data && response.data.message;
+                $scope.showToast(message || "Unable to save tenant. Please try again.", "error");
+            }).finally(function () { $scope.savingTenant = false; });
     };
 
     $scope.triggerConfirmDeleteTenant = function (id) {
@@ -873,11 +1009,12 @@
         }).finally(function () {
             $scope.deleteTenantConfirm = false;
             $scope.getAllTenants();
+            if (typeof $scope.getAllUnits === 'function') $scope.getAllUnits();
         });
     };
 
     // ==========================================
-    // 9. Booking MANAGEMENT (CRUD & Filters)
+    // 9. BOOKING MANAGEMENT (CRUD & Filters)
     // ==========================================
     $scope.getAllBookings = function () {
         service.GetAllBookingsService().then(function (response) {
@@ -912,7 +1049,6 @@
                 $scope.showToast("Failed to load bookings", "error");
             }
         }).finally(function () {
-            // Turns off the skeleton table once data is fully fetched
             $scope.isLoading = false;
         });
     };
@@ -1036,7 +1172,7 @@
 
     $scope.aso = function () {
         $scope.showToast("1", "info");
-    }
+    };
 
     $scope.closeConfirm = function () {
         $scope.confirmTarget = null;
@@ -1186,7 +1322,6 @@
 
     $scope.generateCalendar();
 
-
     // ==========================================
     // 10. MAINTENANCE CRUD
     // ==========================================
@@ -1201,7 +1336,6 @@
     $scope.addOpen = false;
     $scope.resolveConfirmReq = null;
 
-    $scope.scheduleOpen = false;
     $scope.schedulingReq = null;
     $scope.schedDate = null;
     $scope.schedTime = null;
@@ -1257,8 +1391,8 @@
             }
         }).finally(function () {
             $scope.resolveConfirmReq = null;
-        })
-    }
+        });
+    };
 
     $scope.submitAddRequest = function () {
         if (!$scope.unitId || !$scope.description) {
@@ -1283,7 +1417,6 @@
                 $scope.closeAddModal();
                 $scope.showToast(response.data.message, "success");
                 $scope.getAllMaintenance();
-
             } else {
                 $scope.isSubmitting = false;
                 $scope.showToast("Failed to add request: " + response.data.message, "error");
@@ -1293,7 +1426,7 @@
             $scope.showToast("Server error occurred while adding the request.", "error");
         }).finally(function () {
             $scope.closeResolveModal();
-        })
+        });
     };
 
     $scope.opnSchedModal = function (req) {
@@ -1374,11 +1507,9 @@
         }, function (error) {
             $scope.showToast("Server error occurred while fetching maintenance requests.", "error");
         }).finally(function () {
-            // Turns off the skeleton table once data is fully fetched
             $scope.isLoading = false;
         });
     };
-
 
     $scope.countByStatus = function (status) {
         if (!$scope.maintenanceRequests) return 0;
@@ -1520,7 +1651,7 @@
         }, function (error) {
             $scope.showToast("Server error occurred while fetching payments.", "error");
         }).finally(function () {
-            $scope.isLoading = false; // Turns off the skeleton loader
+            $scope.isLoading = false;
         });
     };
 
@@ -1539,7 +1670,9 @@
         return $scope.payments.filter(function (p) { return p.status === status; }).length;
     };
 
-    $scope.setStatusFilter = function (status) {
+    // Renamed so it no longer overwrites the maintenance setStatusFilter.
+    // If your Payments view still calls setStatusFilter(...), point it here.
+    $scope.setPaymentStatusFilter = function (status) {
         $scope.paymentFilter = status;
     };
 
@@ -1563,7 +1696,6 @@
     // ==========================================
     // 12. FILE UPLOADS (Images & IDs)
     // ==========================================
-
     $scope.MAX_UNIT_IMAGES = 10;
 
     $scope.handleImageUpload = function (files) {
@@ -1626,7 +1758,6 @@
             })(files[i]);
         }
 
-        // Clear the input so the same file can be picked again after removal
         var input = document.getElementById('unitImageInput');
         if (input) input.value = '';
     };
@@ -1677,31 +1808,33 @@
     };
 
     $scope.handleIdUpload = function (files) {
-        // 1. Ensure a file was selected
         if (!files || files.length === 0) return;
+        if ($scope.readingIdFile || $scope.savingTenant) return;
 
-        // Grab the single file
         var file = files[0];
 
         $scope.$apply(function () {
             if (!$scope.idFiles) $scope.idFiles = [];
 
-            // 2. Check max 2 limit
             if ($scope.idFiles.length >= 2) {
-                console.warn("Maximum of 2 ID documents reached.");
+                $scope.showToast("Maximum of 2 ID documents reached.", "error");
                 return;
             }
 
-            // 3. Strict check for images only
-            if (file.type.indexOf('image/') !== 0) {
-                console.warn("Rejected non-image file: " + file.name);
+            if (!/^image\/(jpeg|png|gif|bmp|tiff)$/.test(file.type)) {
+                $scope.showToast("Please choose a JPG, PNG, GIF, BMP, or TIFF image.", "error");
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                $scope.showToast("Each ID image must be 10 MB or smaller.", "error");
                 return;
             }
 
-            // 4. Process single image
+            $scope.readingIdFile = true;
             var reader = new FileReader();
             reader.onload = function (event) {
                 $scope.$apply(function () {
+                    $scope.readingIdFile = false;
                     $scope.idFiles.push({
                         fileObj: file,
                         name: file.name,
@@ -1709,10 +1842,15 @@
                     });
                 });
             };
+            reader.onerror = reader.onabort = function () {
+                $scope.$apply(function () {
+                    $scope.readingIdFile = false;
+                    $scope.showToast("Unable to read the ID image. Please select it again.", "error");
+                });
+            };
             reader.readAsDataURL(file);
         });
 
-        // 5. Clear input so the same file can be selected again if deleted
         var idInput = document.getElementById('idFileInput');
         if (idInput) idInput.value = '';
     };
@@ -1727,7 +1865,9 @@
         $scope.idFiles.splice(index, 1);
     };
 
-    // --- 1. Initial Form State ---
+    // ==========================================
+    // 13. TENANT PORTAL
+    // ==========================================
     $scope.MAINTENANCE_CATEGORIES = [
         "Plumbing", "Electrical", "Air Conditioning", "Internet / WiFi",
         "Doors & Locks", "Appliances", "Flooring", "Painting", "Others"
@@ -1740,7 +1880,6 @@
     $scope.reqPhotoName = "";
     $scope.submitting = false;
 
-    // --- 2. Load Data from C# Backend ---
     $scope.init = function () {
         $http.get('/TenantPortal/GetCurrentTenantData')
             .then(function (response) {
@@ -1751,46 +1890,21 @@
                     return;
                 }
 
-                // ==========================================
-                // 🐛 DATA CHECKER START
-                // ==========================================
-
-                // 1. Check Tenant Object
                 if (!data.tenant) {
-                    console.error("🚨 ERROR: Tenant object is completely missing from response!", data);
-                    return; // Stop execution if we don't even have a tenant
+                    console.error("ERROR: Tenant object is completely missing from response!", data);
+                    return;
                 }
                 $scope.currentTenant = data.tenant;
 
-                // 2. Check Co-occupants Array
                 $scope.currentTenant.additionalOccupants = data.coOccupants || [];
-                if ($scope.currentTenant.additionalOccupants.length > 0) {
-                    console.log("✅ Co-occupants successfully loaded:", $scope.currentTenant.additionalOccupants);
-                } else {
-                    console.warn("⚠️ No co-occupants found. Array is empty.", data.coOccupants);
-                }
-
-                // 3. Check Unit Name
                 $scope.currentTenant.unit = data.unitName;
-                if ($scope.currentTenant.unit && $scope.currentTenant.unit !== "Unassigned") {
-                    console.log("✅ Unit name successfully loaded:", $scope.currentTenant.unit);
-                } else {
-                    console.warn("⚠️ Unit name is missing, null, or 'Unassigned'.", data.unitName);
-                }
-
-                console.log("📦 FINAL TENANT PAYLOAD:", $scope.currentTenant);
-
-                // ==========================================
-                // 🐛 DATA CHECKER END
-                // ==========================================
 
                 if ($scope.currentTenant.isTerminated === 1) {
                     $scope.handleLogout(true);
                     return;
                 }
 
-                console.log("🆔 Proceeding to load portal data for Tid:", $scope.currentTenant.Tid);
-                $scope.loadPortalData($scope.currentTenant.Tid); // ✅ fixed
+                $scope.loadPortalData($scope.currentTenant.Tid);
             })
             .catch(function (error) {
                 console.error("Auth error", error);
@@ -1798,10 +1912,9 @@
             }).finally(function () {
                 $scope.isLoading = false;
             });
-    }
+    };
 
     $scope.loadPortalData = function (tid) {
-        // Fetch Maintenance
         $http.get('/TenantPortal/GetMaintenanceRequests?tid=' + tid).then(function (res) {
             var maintenance = res.data || [];
             $scope.myMaintenance = maintenance.sort(function (a, b) {
@@ -1809,7 +1922,6 @@
             });
         });
 
-        // Fetch Payments
         $http.get('/TenantPortal/GetPayments?tid=' + tid).then(function (res) {
             var payments = res.data || [];
             $scope.myPayments = payments.sort(function (a, b) {
@@ -1821,29 +1933,23 @@
             $scope.unpaidPaymentsCount = $scope.myPayments.filter(function (p) { return p.status === 'Unpaid'; }).length;
         });
 
-        // Compute Lease Days
         if ($scope.currentTenant.leaseEnd) {
-            var today = new Date();
-            today.setHours(0, 0, 0, 0);
+            var t = new Date();
+            t.setHours(0, 0, 0, 0);
             var end = new Date($scope.currentTenant.leaseEnd);
             end.setHours(0, 0, 0, 0);
-            $scope.daysLeft = Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            $scope.daysLeft = Math.round((end.getTime() - t.getTime()) / (1000 * 60 * 60 * 24));
         } else {
             $scope.daysLeft = null;
         }
 
-        // Compute Live Status
         if ($scope.daysLeft === null) $scope.liveStatus = "active";
         else if ($scope.daysLeft < 0) $scope.liveStatus = "inactive";
         else if ($scope.daysLeft <= 45) $scope.liveStatus = "expiring";
         else $scope.liveStatus = "active";
 
-        // Co-occupant check
         $scope.hasCoOccupants = $scope.currentTenant.additionalOccupants && $scope.currentTenant.additionalOccupants.length > 0;
-    }
-
-
-    // --- 3. Actions & Logic ---
+    };
 
     $scope.handleLogout = function (wasTerminated) {
         $http.post('/Auth/Logout').then(function () {
@@ -1875,7 +1981,6 @@
             return;
         }
 
-        // Apply phase for file name
         $scope.$apply(function () {
             $scope.reqPhotoName = file.name;
         });
@@ -1897,23 +2002,14 @@
     };
 
     $scope.handleSubmitRequest = function (event) {
-        console.log("1. Function started");
         if (event) event.preventDefault();
 
-        console.log("2. Checking description:", $scope.reqDescription);
         if (!$scope.reqDescription || !$scope.reqDescription.trim()) {
-            console.warn("-> STOPPED: Description is empty!");
-            try {
-                $scope.showToast("Please describe the issue.", "error");
-            } catch (e) {
-                console.error("-> CRASHED: $scope.showToast is not working!", e);
-            }
+            $scope.showToast("Please describe the issue.", "error");
             return;
         }
 
-        console.log("3. Checking tenant data:", $scope.currentTenant);
         if (!$scope.currentTenant) {
-            console.error("-> CRASHED: $scope.currentTenant is undefined! Cannot get Tid.");
             $scope.showToast("System error: Tenant data not loaded.", "error");
             return;
         }
@@ -1934,11 +2030,8 @@
             newRequest.reqPhoto = $scope.reqPhoto;
         }
 
-        console.log("4. Ready to POST this payload:", newRequest);
-
         $http.post('/TenantPortal/SubmitMaintenanceRequest', newRequest)
             .then(function (response) {
-                console.log("5. Server responded:", response.data);
                 if (response.data.success) {
                     $scope.showToast("Maintenance request submitted! We'll get back to you soon.", "success");
                     $scope.loadPortalData($scope.currentTenant.Tid);
@@ -1952,15 +2045,13 @@
                 }
             })
             .catch(function (error) {
-                console.error("6. HTTP POST Failed:", error);
+                console.error("HTTP POST Failed:", error);
                 $scope.showToast("A server error occurred.", "error");
             })
             .finally(function () {
                 $scope.submitting = false;
             });
     };
-
-    // --- 4. UI Helpers (Classes & Formatters) ---
 
     $scope.getPaymentBadgeClass = function (status) {
         if (status === "Paid") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
@@ -1986,8 +2077,7 @@
     };
 
     // ==========================================
-    // ==========================================
-    // 13. BROWSE UNITS (RENTERS)
+    // 14. BROWSE UNITS (RENTERS)
     // ==========================================
     $scope.browseUnits = [];
     $scope.browseCount = 0;
@@ -2003,8 +2093,8 @@
 
     $scope.BED_OPTIONS = [];
     $scope.AMENITY_OPTIONS = [];
-    $scope.getAllBrowseUnits = function () {
 
+    $scope.getAllBrowseUnits = function () {
         var handoff = sessionStorage.getItem('browseSearch');
         if (handoff) {
             $scope.browseQuery = handoff;
@@ -2017,7 +2107,6 @@
                 $scope.BED_OPTIONS = response.data.bedOptions || [];
                 $scope.AMENITY_OPTIONS = response.data.amenityOptions || [];
 
-                // Optional: If you need a total count for the UI text binding
                 $scope.browseCount = $scope.browseUnits.length;
 
                 setTimeout(function () {
@@ -2030,10 +2119,10 @@
         }, function (error) {
             $scope.showToast("Server error occurred while fetching units.", "error");
         }).finally(function () {
-            // 2. Turn off the skeleton loader when the request completely finishes
             $scope.isLoading = false;
         });
     };
+
     $scope.filteredBrowse = function () {
         var list = $scope.browseUnits || [];
 
@@ -2052,7 +2141,6 @@
             list = list.filter(u => $scope.browseBeds.indexOf(u.beds) !== -1);
         }
 
-        // Unit must have EVERY selected amenity, not just one
         if ($scope.browseAmenities.length > 0) {
             list = list.filter(u =>
                 $scope.browseAmenities.every(a => u.amenities && u.amenities.indexOf(a) !== -1)
@@ -2122,43 +2210,40 @@
     };
 
     // ==========================================
-    // 14. RENTERS HOME
+    // 15. RENTERS HOME
     // ==========================================
     $scope.availableUnits = [];
     $scope.featuredUnits = [];
     $scope.homeTags = [];
     $scope.homeSearch = '';
 
-   $scope.getAllHomeUnits = function () {
-    // 1. Instantly trigger the skeleton UI
-    $scope.isLoading = true;
+    $scope.getAllHomeUnits = function () {
+        $scope.isLoading = true;
 
-       service.GetBrowseUnitsService().then(function (response) {
-        if (response.data.success) {
-            
-            $scope.availableUnits = response.data.data || [];
-            
-            $scope.featuredUnits = $scope.availableUnits.slice(0, 3);
-            
-            $scope.homeTags = response.data.amenityOptions || [];
+        service.GetBrowseUnitsService().then(function (response) {
+            if (response.data.success) {
+                $scope.availableUnits = response.data.data || [];
+                $scope.featuredUnits = $scope.availableUnits.slice(0, 3);
+                $scope.homeTags = response.data.amenityOptions || [];
 
-            setTimeout(function () {
-                if (window.lucide) { window.lucide.createIcons(); }
-            }, 50);
-            
-        } else {
-            $scope.showToast("Error loading units: " + response.data.message, "error");
-        }
-    }, function (error) {
-        $scope.showToast("Server error occurred while fetching units.", "error");
-    }).finally(function () {
-        // 2. Shut off the skeleton UI once data has loaded
-        $scope.isLoading = false;
-    });
-};
+                setTimeout(function () {
+                    if (window.lucide) { window.lucide.createIcons(); }
+                }, 50);
 
-    // Every unit returned by GetBrowseUnits is already filtered to vacant
-    $scope.getOccupancy = function (name) {
+            } else {
+                $scope.showToast("Error loading units: " + response.data.message, "error");
+            }
+        }, function (error) {
+            $scope.showToast("Server error occurred while fetching units.", "error");
+        }).finally(function () {
+            $scope.isLoading = false;
+        });
+    };
+
+    // Browse results are already filtered to available (vacant or joinable bedspace).
+    // Prefer the server-provided availabilityLabel when present.
+    $scope.getOccupancy = function (unitOrName) {
+        if (unitOrName && unitOrName.availabilityLabel) return unitOrName.availabilityLabel;
         return 'Vacant';
     };
 
@@ -2170,30 +2255,30 @@
         $scope.goToBrowse(tag);
     };
 
-    // Hand the search term to the Browse page through sessionStorage so it
-    // stays out of the URL. No backend call needed.
     $scope.goToBrowse = function (term) {
         sessionStorage.setItem('browseSearch', term || '');
         window.location.href = '/System/RentersBrowse';
     };
 
     // ==========================================
-    // 15. UNIT DETAIL (RENTERS)
+    // 16. UNIT DETAIL (RENTERS)
     // ==========================================
     $scope.currentUnit = null;
+    $scope.unitDetailLoading = true;
     $scope.unitOccupancy = '';
     $scope.isAvailable = false;
     $scope.relatedUnits = [];
 
     $scope.slideIndex = 0;
-    $scope.liked = false;
 
     $scope.getUnitDetail = function () {
-        service.GetUnitDetailService().then(function (response) {
+        $scope.unitDetailLoading = true;
+
+        return service.GetUnitDetailService().then(function (response) {
             if (response.data.success) {
                 $scope.currentUnit = response.data.unit;
                 $scope.unitOccupancy = response.data.occupancy;
-                $scope.isAvailable = (response.data.occupancy === 'Vacant');
+                $scope.isAvailable = response.data.isAvailable === true;
                 $scope.relatedUnits = response.data.relatedUnits || [];
                 $scope.slideIndex = 0;
 
@@ -2202,10 +2287,14 @@
                 }, 50);
 
             } else {
+                $scope.currentUnit = null;
                 $scope.showToast(response.data.message, "error");
             }
         }, function (error) {
+            $scope.currentUnit = null;
             $scope.showToast("Server error occurred while loading the unit.", "error");
+        }).finally(function () {
+            $scope.unitDetailLoading = false;
         });
     };
 
@@ -2213,28 +2302,69 @@
         $scope.slideIndex = index;
     };
 
+    function copyTextFallback(text) {
+        var input = document.createElement('textarea');
+        input.value = text;
+        input.setAttribute('readonly', '');
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+
+        var copied = false;
+        try {
+            copied = document.execCommand('copy') === true;
+        } catch (error) {
+            copied = false;
+        } finally {
+            document.body.removeChild(input);
+        }
+
+        return copied;
+    }
+
+    $scope.copyUnitLink = function () {
+        if (!$scope.currentUnit || !$scope.currentUnit.id) {
+            return $scope.showToast('Unable to copy this unit link.', 'error');
+        }
+
+        var origin = $window.location.origin ||
+            ($window.location.protocol + '//' + $window.location.host);
+        var link = origin + '/System/RentersUnitDetails?id=' +
+            encodeURIComponent($scope.currentUnit.id);
+        var copied = function () {
+            $scope.showToast('Unit link copied to your clipboard.', 'success');
+        };
+        var fallback = function () {
+            if (copyTextFallback(link)) copied();
+            else $scope.showToast('Unable to copy the link. Please copy it from the address bar.', 'error');
+        };
+
+        if ($window.navigator && $window.navigator.clipboard &&
+            typeof $window.navigator.clipboard.writeText === 'function') {
+            try {
+                $window.navigator.clipboard.writeText(link).then(copied, fallback);
+            } catch (error) {
+                fallback();
+            }
+        } else {
+            fallback();
+        }
+    };
+
     $scope.backToBrowse = function () {
         window.location.href = '/System/RentersBrowse';
     };
 
     $scope.getOccupancyClass = function (status) {
-        if (status === 'Vacant') return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
+        if (status === 'Vacant' || (status && status.indexOf('Bedspace') === 0)) return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
         if (status === 'Expiring') return 'bg-amber-50 text-amber-700 border border-amber-100';
         return 'bg-slate-100 text-slate-600 border border-slate-200';
     };
 
-
     // ==========================================
-    // 16. BOOKING MODAL (RENTERS / VISITOR)
+    // 17. BOOKING MODAL (RENTERS / VISITOR)
     // ==========================================
-    // The view drives most of the modal inline (opening, closing, step
-    // navigation, date/slot selection). Only the calls below need the
-    // server or a loop.
-    //
-    // All names prefixed "bk" so nothing collides with the Auth page
-    // (step, otp, resendCooldown) or Admin Bookings (DAYS, calMonth,
-    // generateCalendar, busyDates).
-
     $scope.bookingOpen = false;
     $scope.bkStep = 'auth';          // auth | verify | calendar | slots | form | confirm | success
     $scope.bkVerified = false;
@@ -2254,22 +2384,19 @@
     $scope.bkBusyDates = [];
     $scope.bkTaken = [];
 
-    $scope.bkSelectedDate = null;    // "yyyy-MM-dd"
+    $scope.bkSelectedDate = null;
     $scope.bkSelectedSlot = null;
     $scope.bkNotes = '';
     $scope.bkLimitError = '';
     $scope.bkSubmitting = false;
     $scope.bkResult = null;
+    $scope.bkBedspaceConfirmed = false;
 
     $scope.bkDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     var bkToday = new Date();
     $scope.bkViewMonth = bkToday.getMonth();
     $scope.bkViewYear = bkToday.getFullYear();
-
-    // ---- Page load -------------------------------------------------
-    // Called from ng-init. Works out whether this visitor already
-    // verified, and loads the busy days / taken slots for the calendar.
 
     $scope.bkCheckVisitor = function () {
         service.GetVisitorSessionService().then(function (response) {
@@ -2295,9 +2422,13 @@
             $scope.bkGenerateCalendar();
         });
     };
+
     $scope.openBooking = function () {
         $scope.bookingOpen = true;
-        $scope.bkStep = $scope.bkVerified ? 'calendar' : 'auth';
+        $scope.bkBedspaceConfirmed = false;
+        $scope.bkStep = $scope.currentUnit && $scope.currentUnit.joinable
+            ? 'bedspace-confirm'
+            : ($scope.bkVerified ? 'calendar' : 'auth');
         $scope.bkSelectedDate = null;
         $scope.bkSelectedSlot = null;
         $scope.bkNotes = '';
@@ -2307,8 +2438,10 @@
         $scope.bkTcChecked = false;
     };
 
-    // ---- Step 1: send OTP ------------------------------------------
-    // Also used by the "Resend code" button.
+    $scope.bkConfirmBedspace = function () {
+        $scope.bkBedspaceConfirmed = true;
+        $scope.bkStep = $scope.bkVerified ? 'calendar' : 'auth';
+    };
 
     function bkStartCooldown() {
         $scope.bkCooldown = 30;
@@ -2348,8 +2481,6 @@
             $scope.showToast("Server error occurred while sending the code.", "error");
         }).finally(function () { $scope.bkLoading = false; });
     };
-
-    // ---- Step 2: verify OTP ----------------------------------------
 
     $scope.bkOtpNext = function (index) {
         var val = $scope.bkOtp[index];
@@ -2397,8 +2528,6 @@
         });
     };
 
-    // ---- Step 3: calendar ------------------------------------------
-
     function bkPad(n) { return String(n).padStart(2, '0'); }
 
     $scope.bkGenerateCalendar = function () {
@@ -2426,7 +2555,6 @@
         }
     };
 
-    // delta of -1 or 1, rolls the year over on its own
     $scope.bkShiftMonth = function (delta) {
         var d = new Date($scope.bkViewYear, $scope.bkViewMonth + delta, 1);
         $scope.bkViewMonth = d.getMonth();
@@ -2442,9 +2570,6 @@
         $scope.bkStep = 'slots';
     };
 
-    // ---- Step 4: slots ---------------------------------------------
-
-    // "08:00 AM" -> 8 , "01:00 PM" -> 13
     function bkSlotHour(slot) {
         var parts = slot.trim().split(' ');
         var hour = parseInt(parts[0].split(':')[0], 10);
@@ -2453,7 +2578,6 @@
         return hour;
     }
 
-    // Blocked when any live booking on that day sits under 60 minutes away
     $scope.bkIsSlotBlocked = function (slot) {
         if (!$scope.bkSelectedDate) return false;
 
@@ -2473,8 +2597,6 @@
         $scope.bkStep = 'form';
     };
 
-    // ---- Step 6: submit --------------------------------------------
-
     $scope.bkSubmit = function () {
         if (!$scope.bkSelectedDate || !$scope.bkSelectedSlot) return;
 
@@ -2483,7 +2605,8 @@
         var payload = {
             date: $scope.bkSelectedDate,
             slot: $scope.bkSelectedSlot,
-            notes: $scope.bkNotes
+            notes: $scope.bkNotes,
+            bedspaceConfirmed: $scope.bkBedspaceConfirmed
         };
 
         service.SubmitVisitorBookingService(payload).then(function (response) {
@@ -2492,7 +2615,6 @@
                 $scope.bkStep = 'success';
                 $scope.showToast(response.data.message, "success");
 
-                // Refresh so the new booking blocks its own slot right away
                 $scope.bkLoadAvailability();
             } else {
                 $scope.bkLimitError = response.data.message;
@@ -2504,8 +2626,6 @@
         }).finally(function () { $scope.bkSubmitting = false; });
     };
 
-    // ---- Display helper --------------------------------------------
-
     $scope.bkFormatDate = function (dateStr) {
         if (!dateStr) return '';
         var parts = dateStr.split('-');
@@ -2514,12 +2634,8 @@
     };
 
     // ==========================================
-    // 17. MY BOOKINGS (RENTERS / GUEST)
+    // 18. MY BOOKINGS (RENTERS / GUEST)
     // ==========================================
-    // Prefixed "mb" so nothing collides with Admin Bookings
-    // (bookings, declineTarget, declineReason, setFilter) or the
-    // booking modal in section 16.
-
     $scope.mbVerified = false;
     $scope.mbBookings = [];
     $scope.mbName = '';
@@ -2529,9 +2645,8 @@
     $scope.mbSearch = '';
     $scope.STATUS_FILTERS = ['All', 'Pending', 'Confirmed', 'Declined', 'Cancelled'];
 
-    // Sign-in
     $scope.mbShowSignIn = false;
-    $scope.mbStep = 'form';          // form | otp
+    $scope.mbStep = 'form';
     $scope.mbSignInName = '';
     $scope.mbSignInEmail = '';
     $scope.mbSignInPhone = '';
@@ -2541,7 +2656,6 @@
     $scope.mbOtpLoading = false;
     $scope.mbCooldown = 0;
 
-    // Cancel
     $scope.mbCancelTarget = null;
     $scope.mbCancelReason = '';
     $scope.mbCustomReason = '';
@@ -2553,8 +2667,6 @@
         "No longer looking",
         "Other"
     ];
-
-    // ---- Load ------------------------------------------------------
 
     $scope.getMyBookings = function () {
         service.GetMyBookingsService().then(function (response) {
@@ -2571,8 +2683,6 @@
             $scope.showToast("Server error occurred while loading your bookings.", "error");
         });
     };
-
-    // ---- Filtering -------------------------------------------------
 
     $scope.filteredMyBookings = function () {
         var list = $scope.mbBookings || [];
@@ -2614,8 +2724,6 @@
         if (status === 'Declined') return 'bg-red-50 text-red-600 border border-red-100';
         return 'bg-slate-100 text-slate-600 border border-slate-200';
     };
-
-    // ---- Sign in ---------------------------------------------------
 
     $scope.mbOpenSignIn = function () {
         $scope.mbShowSignIn = true;
@@ -2690,6 +2798,7 @@
 
         service.VerifyVisitorOtpService(code).then(function (response) {
             if (response.data.success) {
+                $scope.visitorName = response.data.name || $scope.mbSignInName;
                 $scope.showToast("Welcome back, " + response.data.name + "!", "success");
                 $scope.mbShowSignIn = false;
                 $scope.getMyBookings();
@@ -2704,6 +2813,7 @@
 
     $scope.mbSignOut = function () {
         service.ClearVisitorSessionService().then(function () {
+            $scope.visitorName = '';
             $scope.mbVerified = false;
             $scope.mbBookings = [];
             $scope.mbName = '';
@@ -2716,8 +2826,6 @@
             $scope.mbOtp = [];
         });
     };
-
-    // ---- Cancel ----------------------------------------------------
 
     $scope.mbOpenCancel = function (booking) {
         $scope.mbCancelTarget = booking.id;
@@ -2760,13 +2868,12 @@
         }).finally(function () { $scope.mbCancelLoading = false; });
     };
 
-    // ---- Navigation ------------------------------------------------
-
     $scope.mbViewUnit = function (uid) {
         $scope.goToUnit(uid);
     };
+
     // ==========================================
-    // 18. VISITOR SESSION (RENTERS HEADER)
+    // 19. VISITOR SESSION (RENTERS HEADER)
     // ==========================================
     $scope.visitorName = '';
 
@@ -2782,11 +2889,10 @@
             window.location.reload();
         });
     };
-    // ==========================
-    // 19. Forgot Password
-    // ===========================
 
-
+    // ==========================================
+    // 20. FORGOT PASSWORD
+    // ==========================================
     $scope.fpEmail = '';
     $scope.fpOtp = [];
     $scope.fpNewPw = '';
@@ -2814,8 +2920,6 @@
         $scope.step = 'forgot';
         $scope.fpOtp = [];
     };
-
-    // ---- Step 1: send the reset code -------------------------------
 
     function fpStartCooldown() {
         $scope.fpCooldown = 30;
@@ -2846,8 +2950,6 @@
         }).finally(function () { $scope.fpLoading = false; });
     };
 
-    // ---- Step 2: verify the code -----------------------------------
-
     $scope.fpOtpNext = function (index) {
         var val = $scope.fpOtp[index];
         if (!/^\d?$/.test(val)) { $scope.fpOtp[index] = ''; return; }
@@ -2877,8 +2979,6 @@
             $scope.showToast("Server error occurred while verifying.", "error");
         }).finally(function () { $scope.fpLoading = false; });
     };
-
-    // ---- Step 3: set the new password ------------------------------
 
     $scope.pwStrength = function () {
         var pw = $scope.fpNewPw || '';
@@ -2929,7 +3029,21 @@
             $scope.showToast("Server error occurred while saving.", "error");
         }).finally(function () { $scope.fpSaving = false; });
     };
-    // ================= Property Managers page =================
+    // Normalises stored file URLs: data: URIs pass through, disk paths get a leading slash
+    $scope.fileSrc = function (url) {
+        if (!url) return '';
+        if (url.indexOf('data:') === 0) return url;
+        if (url.indexOf('http') === 0) return url;
+        return url.charAt(0) === '/' ? url : '/' + url;
+    };
+
+    $scope.isPdf = function (url) {
+        if (!url) return false;
+        return url.toLowerCase().indexOf('.pdf') !== -1 || url.indexOf('data:application/pdf') === 0;
+    };
+    // ==========================================
+    // 21. PROPERTY MANAGERS PAGE (SUPERADMIN)
+    // ==========================================
     $scope.propertyManagers = [];
     $scope.filteredManagers = [];
     $scope.search = '';
@@ -2946,26 +3060,29 @@
 
     $scope.deleteOpen = false;
     $scope.deleteTarget = null;
+    $scope.deletingManager = false;
 
     $scope.initManagers = function () {
         $scope.isLoading = true;
         service.GetManagersService().then(function (res) {
             if (res.data && res.data.success) {
                 $scope.propertyManagers = res.data.data || [];
+            } else {
+                $scope.showToast((res.data && res.data.message) || 'Unable to load manager accounts.', 'error');
             }
+        }, function () {
+            $scope.showToast('Unable to load manager accounts.', 'error');
         }).finally(function () {
             $scope.isLoading = false;
-        })
+        });
     };
 
-    // Stat cards: active = online now (derived server-side from lastActive)
     $scope.getStats = function () {
         var list = $scope.propertyManagers || [];
         var active = list.filter(function (m) { return m.status === 'active'; }).length;
         return { total: list.length, active: active, inactive: list.length - active };
     };
 
-    // Combined text + role filter (used as `filter:searchFilter` in the table)
     $scope.searchFilter = function (m) {
         var q = ($scope.search || '').toLowerCase();
         var matchesText = !q ||
@@ -2975,24 +3092,17 @@
         return matchesText && matchesRole;
     };
 
-    $scope.getInitials = function (name) {
-        if (!name) return '';
-        var p = name.trim().split(/\s+/);
-        return (p.length === 1 ? p[0].charAt(0) : p[0].charAt(0) + p[p.length - 1].charAt(0)).toUpperCase();
-    };
-
     $scope.avatarColor = function (id) {
         var colors = ['bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-amber-500', 'bg-rose-500', 'bg-teal-500', 'bg-indigo-500'];
         return colors[(id || 0) % colors.length];
     };
 
-    $scope.formatDate = function (val) { return val ? val : '—'; };
+    $scope.formatDate = function (val) { return val ? val : '\u2014'; };
 
-    // ----- Create / Edit modal -----
     $scope.openCreate = function () {
         $scope.modalMode = 'create';
         $scope.editTarget = {};
-        $scope.form = { name: '', email: '', role: 'property_manager', status: 'active', password: '', confirmPassword: '' };
+        $scope.form = { name: '', email: '', role: 2, password: '', confirmPassword: '' };
         $scope.formErrors = {};
         $scope.showPassword = false;
         $scope.showConfirm = false;
@@ -3002,21 +3112,24 @@
     $scope.openEdit = function (m) {
         $scope.modalMode = 'edit';
         $scope.editTarget = m;
-        $scope.form = { id: m.id, name: m.name, email: m.email, role: m.role, status: m.status, password: '', confirmPassword: '' };
+        var roleValue = (m.role === 'admin' || m.role === 1 || m.role === '1') ? 1 : 2;
+        $scope.form = { id: m.id, name: m.name, email: m.email, role: roleValue, password: '', confirmPassword: '' };
         $scope.formErrors = {};
         $scope.showPassword = false;
         $scope.showConfirm = false;
         $scope.modalOpen = true;
     };
 
-    $scope.closeModal = function () {
+    // NOTE: the Managers modal and the Booking-detail modal both used
+    // closeModal. This one is scoped to Managers; they never load together.
+    $scope.closeManagerModal = function () {
         $scope.modalOpen = false;
         $scope.editTarget = {};
         $scope.formErrors = {};
     };
 
     $scope.handleBackdropClick = function ($event) {
-        if ($event.target === $event.currentTarget) $scope.closeModal();
+        if ($event.target === $event.currentTarget) $scope.closeManagerModal();
     };
 
     $scope.getInputClass = function (err) {
@@ -3029,12 +3142,13 @@
         if (!f.name || !f.name.trim()) e.name = 'Name is required.';
         if (!f.email || !f.email.trim()) e.email = 'Email is required.';
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid email.';
+        if (f.role !== 1 && f.role !== 2) e.role = 'Select a valid role.';
 
         if ($scope.modalMode === 'create') {
             if (!f.password) e.password = 'Password is required.';
             else if (f.password.length < 8) e.password = 'Min. 8 characters.';
             if (f.password !== f.confirmPassword) e.confirmPassword = 'Passwords do not match.';
-        } else if (f.password) { // edit: validate only if a new password was typed
+        } else if (f.password) {
             if (f.password.length < 8) e.password = 'Min. 8 characters.';
             if (f.password !== f.confirmPassword) e.confirmPassword = 'Passwords do not match.';
         }
@@ -3048,7 +3162,7 @@
 
         $scope.saving = true;
         var f = $scope.form;
-        var payload = { id: f.id, name: f.name.trim(), email: f.email.trim(), role: f.role, password: f.password || '' };
+        var payload = { id: f.id, name: f.name.trim(), email: f.email.trim(), role: Number(f.role), password: f.password || '' };
 
         var call = $scope.modalMode === 'create'
             ? service.CreateManagerService(payload)
@@ -3056,15 +3170,20 @@
 
         call.then(function (res) {
             if (res.data && res.data.success) {
-                $scope.closeModal();
+                $scope.closeManagerModal();
                 $scope.initManagers();
+                $scope.showToast($scope.modalMode === 'create' ? 'Manager account created.' : 'Account updated.', 'success');
             } else {
-                $scope.formErrors.email = (res.data && res.data.message) || 'Something went wrong.';
+                var message = (res.data && res.data.message) || 'Unable to save the account.';
+                $scope.formErrors.general = message;
+                $scope.showToast(message, 'error');
             }
+        }, function () {
+            $scope.formErrors.general = 'Unable to save the account. Please try again.';
+            $scope.showToast($scope.formErrors.general, 'error');
         }).finally(function () { $scope.saving = false; });
     };
 
-    // ----- Delete -----
     $scope.confirmDelete = function (m) { $scope.deleteTarget = m; $scope.deleteOpen = true; };
 
     $scope.handleDeleteBackdropClick = function ($event) {
@@ -3072,76 +3191,117 @@
     };
 
     $scope.handleDelete = function () {
-        if (!$scope.deleteTarget) return;
+        if (!$scope.deleteTarget || $scope.deletingManager) return;
+        $scope.deletingManager = true;
         service.DeleteManagerService({ id: $scope.deleteTarget.id }).then(function (res) {
             if (res.data && res.data.success) {
                 $scope.deleteOpen = false;
                 $scope.deleteTarget = null;
                 $scope.initManagers();
+                $scope.showToast('Manager account deleted.', 'success');
+            } else {
+                $scope.showToast((res.data && res.data.message) || 'Unable to delete the account.', 'error');
             }
+        }, function () {
+            $scope.showToast('Unable to delete the account. Please try again.', 'error');
+        }).finally(function () {
+            $scope.deletingManager = false;
         });
     };
 
-    // Status = live presence, so there's nothing to toggle. No-op keeps the button harmless.
-    $scope.handleToggleStatus = function (m) { /* no-op */ };
-
+    // ==========================================
+    // 22. AMENITIES ADMIN
+    // ==========================================
     $scope.amenities = [];
-    $scope.newAmenity = '';
+    // Keep form values on an object so ng-if's child scope does not shadow them.
+    $scope.amenityForm = { name: '' };
     $scope.isLoading = true;
+    $scope.addingAmenity = false;
+    $scope.deletingAmenityId = null;
 
     $scope.initLookup = function () {
         $scope.isLoading = true;
         service.GetAllAmenitiesService().then(function (res) {
             if (res.data && res.data.success) {
                 $scope.amenities = res.data.data || [];
+            } else {
+                $scope.showToast((res.data && res.data.message) || 'Unable to load amenities.', 'error');
             }
+        }, function () {
+            $scope.showToast('Unable to load amenities.', 'error');
         }).finally(function () {
             $scope.isLoading = false;
         });
     };
 
-    $scope.addItem = function () {
-        var value = ($scope.newAmenity || '').trim();
-        if (!value) return;
+    $scope.addAmenity = function () {
+        var value = ($scope.amenityForm.name || '').trim();
+        if ($scope.addingAmenity) return;
+        if (!value) {
+            $scope.showToast('Enter an amenity name.', 'info');
+            return;
+        }
 
-        // avoid obvious duplicate before hitting the server
         var exists = $scope.amenities.some(function (a) {
             return a.name.toLowerCase() === value.toLowerCase();
         });
-        if (exists) { $scope.newAmenity = ''; return; }
+        if (exists) {
+            $scope.showToast('That amenity already exists.', 'info');
+            return;
+        }
 
+        $scope.addingAmenity = true;
         service.AddAmenityService({ name: value }).then(function (res) {
             if (res.data && res.data.success) {
                 $scope.amenities.push({ id: res.data.id, name: res.data.name });
-                $scope.newAmenity = '';
+                $scope.amenityForm.name = '';
+                $scope.showToast('Amenity added.', 'success');
+            } else {
+                $scope.showToast((res.data && res.data.message) || 'Unable to add the amenity.', 'error');
             }
+        }, function () {
+            $scope.showToast('Unable to add the amenity. Please try again.', 'error');
+        }).finally(function () {
+            $scope.addingAmenity = false;
         });
     };
 
     $scope.removeItem = function (amenity) {
+        if (!amenity || $scope.deletingAmenityId !== null) return;
+        if (!$window.confirm('Remove "' + amenity.name + '" from the available amenities?')) return;
+
+        $scope.deletingAmenityId = amenity.id;
         service.DeleteAmenityService({ id: amenity.id }).then(function (res) {
             if (res.data && res.data.success) {
                 var i = $scope.amenities.indexOf(amenity);
                 if (i !== -1) $scope.amenities.splice(i, 1);
+                $scope.showToast('Amenity removed.', 'success');
+            } else {
+                $scope.showToast((res.data && res.data.message) || 'Unable to remove the amenity.', 'error');
             }
+        }, function () {
+            $scope.showToast('Unable to remove the amenity. Please try again.', 'error');
+        }).finally(function () {
+            $scope.deletingAmenityId = null;
         });
     };
+
+    // ==========================================
+    // 23. AUDIT LOGS
+    // ==========================================
     $scope.auditLogs = [];
     $scope.filteredLogs = [];
     $scope.counts = {};
     $scope.filter = 'all';
-    $scope.searchQuery = '';
 
-    // The 5 stat buttons at the top
     $scope.auditTypes = ['login', 'settings', 'security', 'user'];
 
-    // The filter chips in the toolbar
     $scope.typeFilters = [
         { id: 'all', label: 'All' },
         { id: 'login', label: 'Login' },
         { id: 'settings', label: 'Settings' },
         { id: 'security', label: 'Security' },
-        { id: 'user', label: 'User' },
+        { id: 'user', label: 'User' }
     ];
 
     $scope.initAudit = function () {
@@ -3150,18 +3310,20 @@
             if (res.data && res.data.success) {
                 $scope.auditLogs = res.data.data || [];
                 $scope.counts = res.data.counts || {};
+            } else {
+                $scope.showToast((res.data && res.data.message) || 'Unable to load the audit trail.', 'error');
             }
+        }, function () {
+            $scope.showToast('Unable to load the audit trail.', 'error');
         }).finally(function () {
             $scope.isLoading = false;
         });
     };
 
-    $scope.setFilter = function (type) {
-        // clicking the active filter again clears it back to "all"
+    $scope.setAuditFilter = function (type) {
         $scope.filter = ($scope.filter === type && type !== 'all') ? 'all' : type;
     };
 
-    // Combined type + text filter (used as `filter:auditFilter` in the view)
     $scope.auditFilter = function (entry) {
         var matchesType = $scope.filter === 'all' || entry.type === $scope.filter;
 
@@ -3174,7 +3336,6 @@
         return matchesType && matchesText;
     };
 
-    // Background/text color per type (stat icons + badges)
     $scope.getAuditBg = function (type) {
         switch (type) {
             case 'login': return 'bg-blue-50 text-blue-600';

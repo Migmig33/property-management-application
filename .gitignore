@@ -1,0 +1,15 @@
+# Local secrets
+**/Appsettings.Local.config
+
+# Visual Studio
+.vs/
+**/.vs/
+*.user
+*.suo
+
+# Build output
+**/bin/
+**/obj/
+
+# NuGet packages
+packages/

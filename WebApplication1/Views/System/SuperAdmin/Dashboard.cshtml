@@ -29,7 +29,7 @@
     </div>
 
     <div ng-if="!isLoading" class="grid grid-cols-2 gap-4">
-        <div ng-click="goTo('Managers')"
+        <div ng-click="goTo('AdminManagers')"
              class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all transform hover:-translate-y-0.5 cursor-pointer hover:shadow-md">
             <div class="flex items-start justify-between mb-3">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-green-50">
@@ -43,10 +43,10 @@
             </div>
             <p class="text-slate-500 text-xs mb-1">Active Users</p>
             <p class="text-2xl font-bold text-slate-900">{{ activeManagers }}</p>
-            <p class="text-slate-400 text-xs mt-1">{{ lockedManagers  }} inactive &middot; {{ totalAccounts }} total</p>
+            <p class="text-slate-400 text-xs mt-1">{{ lockedManagers }} offline &middot; {{ totalAccounts }} total</p>
         </div>
 
-        <div ng-click="goTo('AuditTrail')"
+        <div ng-click="goTo('AdminLogs')"
              class="bg-white rounded-2xl p-5 border border-red-100 shadow-sm transition-all transform hover:-translate-y-0.5 cursor-pointer hover:shadow-md">
             <div class="flex items-start justify-between mb-3">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-red-50">
@@ -68,7 +68,7 @@
         <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-slate-900 font-medium">Managers Account</h3>
-                <button ng-click="goTo('Managers')" class="text-green-600 text-xs flex items-center gap-1 hover:text-green-700 transition-colors">
+                <button ng-click="goTo('AdminManagers')" class="text-green-600 text-xs flex items-center gap-1 hover:text-green-700 transition-colors">
                     Manage
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
                 </button>
@@ -95,7 +95,7 @@
                     <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
                           ng-class="m.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
                         <span class="w-1.5 h-1.5 rounded-full" ng-class="m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'"></span>
-                        {{ m.status === 'active' ? 'Active' : 'Inactive' }}
+                        {{ m.status === 'active' ? 'Online' : 'Offline' }}
                     </span>
                 </div>
             </div>
@@ -104,7 +104,7 @@
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                 <h3 class="text-slate-900 font-medium">Recent Activity</h3>
-                <button ng-click="goTo('AuditTrail')" class="text-green-600 text-xs flex items-center gap-1 hover:text-green-700 transition-colors">
+                <button ng-click="goTo('AdminLogs')" class="text-green-600 text-xs flex items-center gap-1 hover:text-green-700 transition-colors">
                     View all
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
                 </button>

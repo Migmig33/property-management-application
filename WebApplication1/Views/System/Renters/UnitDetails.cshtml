@@ -15,15 +15,89 @@
         </button>
     </div>
 
+    <!-- ============ LOADING SKELETON ============ -->
+    <div ng-if="unitDetailLoading"
+         class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16"
+         role="status"
+         aria-live="polite">
+        <span class="sr-only">Loading unit details...</span>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-pulse" aria-hidden="true">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="rounded-2xl bg-slate-200" style="aspect-ratio: 16/9;"></div>
+
+                <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-5">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex-1 space-y-3">
+                            <div class="h-7 w-48 sm:w-64 bg-slate-200 rounded-lg"></div>
+                            <div class="h-4 w-40 sm:w-56 bg-slate-200 rounded"></div>
+                        </div>
+                        <div class="h-9 w-24 bg-slate-200 rounded-xl"></div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-5 py-4 border-y border-slate-100">
+                        <div ng-repeat="i in [1,2,3,4]" class="flex items-center gap-2">
+                            <div class="h-5 w-5 bg-slate-200 rounded"></div>
+                            <div class="h-4 w-20 bg-slate-200 rounded"></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="h-3.5 w-full bg-slate-200 rounded"></div>
+                        <div class="h-3.5 w-11/12 bg-slate-200 rounded"></div>
+                        <div class="h-3.5 w-3/4 bg-slate-200 rounded"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="p-6 space-y-3">
+                        <div class="h-5 w-44 bg-slate-200 rounded"></div>
+                        <div class="h-3.5 w-64 max-w-full bg-slate-200 rounded"></div>
+                    </div>
+                    <div class="mx-6 mb-6 h-44 bg-slate-200 rounded-xl"></div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                    <div class="h-5 w-28 bg-slate-200 rounded mb-5"></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div ng-repeat="i in [1,2,3,4,5,6]" class="flex items-center gap-2">
+                            <div class="h-8 w-8 bg-slate-200 rounded-lg"></div>
+                            <div class="h-4 w-20 bg-slate-200 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1">
+                <div class="sticky top-24 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-5">
+                    <div class="space-y-2">
+                        <div class="h-8 w-44 bg-slate-200 rounded-lg"></div>
+                        <div class="h-4 w-28 bg-slate-200 rounded"></div>
+                    </div>
+
+                    <div class="space-y-4 py-5 border-y border-slate-100">
+                        <div ng-repeat="i in [1,2,3]" class="flex justify-between gap-4">
+                            <div class="h-4 w-28 bg-slate-200 rounded"></div>
+                            <div class="h-4 w-20 bg-slate-200 rounded"></div>
+                        </div>
+                    </div>
+
+                    <div class="h-12 w-full bg-slate-200 rounded-xl"></div>
+                    <div class="h-16 w-full bg-slate-100 rounded-xl"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ============ NOT FOUND ============ -->
-    <div ng-if="!currentUnit" class="min-h-96 flex items-center justify-center">
+    <div ng-if="!unitDetailLoading && !currentUnit" class="min-h-96 flex items-center justify-center">
         <div class="text-center">
             <h2 class="text-slate-700 mb-2 font-semibold">Unit not found</h2>
             <button ng-click="backToBrowse()" class="text-green-600 hover:underline text-sm">&larr; Back to Browse</button>
         </div>
     </div>
 
-    <div ng-show="currentUnit" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    <div ng-if="!unitDetailLoading && currentUnit" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             <!-- ============ LEFT / MAIN ============ -->
@@ -86,23 +160,14 @@
                         </div>
 
                         <div class="flex items-center gap-2">
-                            <button ng-click="liked = !liked"
-                                    ng-class="{'bg-red-50 border-red-200 text-red-500': liked, 'border-slate-200 text-slate-400 hover:border-red-200 hover:text-red-400': !liked}"
-                                    class="p-2 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    aria-label="Like unit">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" ng-attr-fill="{{ liked ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                                </svg>
-                            </button>
-
-                            <button class="p-2 rounded-xl border border-slate-200 text-slate-400 hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-green-500" aria-label="Share unit">
+                            <button type="button" ng-click="copyUnitLink()"
+                                    class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-500 hover:border-green-300 hover:text-green-700 transition-all focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    aria-label="Copy unit link" title="Copy unit link">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="18" cy="5" r="3" />
-                                    <circle cx="6" cy="12" r="3" />
-                                    <circle cx="18" cy="19" r="3" />
-                                    <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
-                                    <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
+                                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
                                 </svg>
+                                <span class="hidden sm:inline text-sm font-medium">Copy link</span>
                             </button>
                         </div>
                     </div>
@@ -255,7 +320,7 @@
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                                     <path d="m9 11 3 3L22 4" />
                                 </svg>
-                                Available now
+                                {{ currentUnit.joinable ? currentUnit.slotsOpen + ' bedspace slot(s) available' : 'Available now' }}
                             </p>
                         </div>
 
@@ -285,11 +350,11 @@
                                 <path d="M8 2v4" />
                                 <path d="M3 10h18" />
                             </svg>
-                            {{ isAvailable ? 'Book a Viewing' : 'Currently Occupied' }}
+                            {{ isAvailable ? 'Book a Viewing' : 'Currently Unavailable' }}
                         </button>
 
                         <p ng-if="!isAvailable" class="text-center text-slate-400 text-xs mt-3">
-                            This unit has a current tenant. Check back for availability.
+                            This unit currently has no available slots. Check back for availability.
                         </p>
 
                         <div class="mt-4 p-3 bg-slate-50 rounded-xl">
@@ -318,6 +383,7 @@
 
             <div ng-show="bkStep !== 'success'" class="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
                 <h3 class="text-slate-900 font-semibold">
+                    <span ng-if="bkStep === 'bedspace-confirm'">Confirm Bedspace Booking</span>
                     <span ng-if="bkStep === 'auth'">Sign Up to Book</span>
                     <span ng-if="bkStep === 'verify'">Verify Your Email</span>
                     <span ng-if="bkStep === 'confirm'">Review &amp; Submit</span>
@@ -329,6 +395,50 @@
                         <path d="m6 6 12 12" />
                     </svg>
                 </button>
+            </div>
+
+            <!-- ============ BEDSPACE CONFIRMATION ============ -->
+            <div ng-show="bkStep === 'bedspace-confirm'" class="p-6">
+                <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+                        <path d="M2 4v16" />
+                        <path d="M2 8h18a2 2 0 0 1 2 2v10" />
+                        <path d="M2 17h20" />
+                        <path d="M6 8v9" />
+                    </svg>
+                </div>
+
+                <h4 class="text-center text-slate-900 text-lg font-semibold mb-2">This is a bedspace unit</h4>
+                <p class="text-center text-slate-500 text-sm leading-relaxed mb-5">
+                    You are booking a viewing for <strong class="text-slate-800">one bedspace in {{ currentUnit.name }}</strong>,
+                    not the entire unit. The unit is shared with other occupants.
+                </p>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-blue-700">Available bedspace slots</span>
+                        <strong class="text-blue-900">{{ currentUnit.slotsOpen }}</strong>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-blue-700">Current occupants</span>
+                        <strong class="text-blue-900">{{ currentUnit.currentOccupants }}</strong>
+                    </div>
+                </div>
+
+                <p class="text-center text-slate-700 text-sm font-medium mb-5">
+                    Do you want to continue booking this bedspace?
+                </p>
+
+                <div class="flex gap-3">
+                    <button ng-click="bookingOpen = false"
+                            class="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
+                        No, go back
+                    </button>
+                    <button ng-click="bkConfirmBedspace()"
+                            class="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Yes, continue
+                    </button>
+                </div>
             </div>
 
             <!-- ============ STEP 1 — AUTH ============ -->
@@ -687,6 +797,10 @@
 
                 <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-5 text-xs text-amber-700">
                     ⚠️ Once submitted, your booking will be <strong>reviewed by the admin</strong>. You'll receive a confirmation shortly.
+                </div>
+
+                <div ng-if="currentUnit.joinable" class="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-5 text-xs text-blue-700">
+                    You confirmed that this viewing is for one bedspace in a shared unit.
                 </div>
 
                 <div class="flex gap-3">

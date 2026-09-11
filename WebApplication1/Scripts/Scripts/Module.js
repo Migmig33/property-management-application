@@ -5,6 +5,11 @@ app.config(function ($compileProvider) {
 });
 app.run(['$http', '$interval', function ($http, $interval) {
 
+    var antiForgeryInput = document.querySelector('input[name="__RequestVerificationToken"]');
+    if (antiForgeryInput && antiForgeryInput.value) {
+        $http.defaults.headers.post.RequestVerificationToken = antiForgeryInput.value;
+    }
+
     function heartbeat() {
         $http.get('/Auth/CheckActiveUser').catch(function () {
             
