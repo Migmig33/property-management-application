@@ -201,6 +201,17 @@
             Back-off algorithm customized for MySql Cluster (NDB) errors.
             </summary>
         </member>
+        <member name="T:MySql.Data.EntityFramework.MySqlHistoryContext">
+            <summary>
+            This class is used by Code First Migrations to read and write migration history
+            from the database.
+            </summary>
+        </member>
+        <member name="T:MySql.Data.EntityFramework.MySqlLogger">
+            <summary>
+            Provides the capability to write a log.
+            </summary>  
+        </member>
         <member name="T:MySql.Data.EntityFramework.MySqlMigrationCodeGenerator">
             <summary>
             Class used to customized code generation
@@ -358,6 +369,16 @@
         <member name="P:MySql.Data.EntityFramework.Properties.Resources.WrongFunctionResultType">
             <summary>
               Looks up a localized string similar to Result type of a function is expected to be a collection of RowType or PrimitiveType.
+            </summary>
+        </member>
+        <member name="T:MySql.Data.MySqlClient.MySqlScriptServices">
+            <summary>
+            Constructs a script that generates a table.
+            </summary>
+        </member>
+        <member name="T:MySql.Data.MySqlClient.MySqlProviderServices">
+            <summary>
+            The <see cref="T:System.Data.Entity.Core.Common.DbProviderServices"/> implementation for the MySqlClient provider for MySQL Server.
             </summary>
         </member>
         <member name="M:MySql.Data.MySqlClient.MySqlProviderServices.SetExpectedTypes(System.Data.Entity.Core.Common.CommandTrees.DbCommandTree,MySql.Data.EntityFramework.EFMySqlCommand)">

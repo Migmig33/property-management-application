@@ -1,5 +1,11 @@
 ﻿app.controller('controller', function (service, $scope, $timeout, $interval, $http, $sce, $window) {
 
+    var systemRefreshTimer = setInterval(function () {
+        $scope.$applyAsync(function () {
+            $scope.getAllBrowseUnits();
+        });
+    }, 10000);
+
     // ==========================================
     // 0. OCCUPANCY TYPE CONSTANTS
     //    1 = Single Occupant (one tenant, whole unit)

@@ -14,7 +14,7 @@ namespace WebApplication1.Helper
             if (_cache.Contains(key))
             
                 return (T)_cache.Get(key);
-
+            
                 T data = load();
                 _cache.Set(key, data, DateTimeOffset.Now.AddMinutes(minutes));
             return data;

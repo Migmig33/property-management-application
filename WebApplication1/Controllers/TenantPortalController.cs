@@ -46,7 +46,6 @@ namespace WebApplication1.Controllers
                         tenantData.name,
                         tenantData.email,
                         tenantData.phone,
-                        tenantData.status,
                         tenantData.address,
                         tenantData.occupation,
                         tenantData.occupancyTypeId,

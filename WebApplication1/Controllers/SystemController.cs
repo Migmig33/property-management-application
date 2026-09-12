@@ -75,7 +75,7 @@ namespace WebApplication1.Controllers
         {
             return View("Admin/Units");
         }
-        //[CheckSession(AllowedRoles = new[] { 2 })]
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Tenants()
         {
             return View("Admin/Tenants");
@@ -91,7 +91,7 @@ namespace WebApplication1.Controllers
         {
             return View("Admin/Maintenance");
         }
-        [CheckSession(AllowedRoles = new[] { 2 })]
+        //[CheckSession(AllowedRoles = new[] { 2 })]
 
         public ActionResult Payments()
         {
@@ -234,7 +234,6 @@ namespace WebApplication1.Controllers
                             occupancyTypeId = tenantData.occupancyTypeId,
                             passwordHash = BCrypt.Net.BCrypt.HashPassword(tenantData.passwordHash),
                             unitId = tenantData.unitId,
-                            status = "Active",
                             isTerminated = 0,
                             leaseStart = tenantData.leaseStart,
                             leaseEnd = tenantData.leaseEnd
@@ -303,6 +302,9 @@ namespace WebApplication1.Controllers
 
                         transaction.Commit();
                         committed = true;
+                        CacheHelper.Remove("all-tenants");
+                        CacheHelper.Remove("all-units");
+                        CacheHelper.Remove("all-browse-units");
                         AuditLogger.Log("user", "info", "Created tenant: " + newTenant.name, CurrentUserName());
                         return Json(new { success = true, message = "Tenant Saved Successfully" },
                                     JsonRequestBehavior.AllowGet);
@@ -431,9 +433,12 @@ namespace WebApplication1.Controllers
                             }
                         }
                     }
-
+                  
                     transaction.Commit();
                     committed = true;
+                    CacheHelper.Remove("all-tenants");
+                    CacheHelper.Remove("all-units");
+                    CacheHelper.Remove("all-browse-units");
                     AuditLogger.Log("user", "info", "Updated tenant: " + existingTenant.name, CurrentUserName());
                     return Json(new { success = true, message = "Tenant Saved Successfully" },
                                 JsonRequestBehavior.AllowGet);
@@ -611,7 +616,8 @@ namespace WebApplication1.Controllers
                     }
 
                     connect.SaveChanges();
-
+                    CacheHelper.Remove("all-browse-units");
+                    CacheHelper.Remove("all-units");
                     AuditLogger.Log("settings", "info",
                         (existingUnit == null ? "Created unit: " : "Updated unit: ") + data.unitName, CurrentUserName());
                     return Json(new
@@ -832,7 +838,7 @@ namespace WebApplication1.Controllers
                 {
                     // 1. Intelligently find the correct Tenant ID based on the chosen Unit
                     var activeTenant = connect.tenant.FirstOrDefault(t =>
-                        t.unitId == requestData.Uid && t.status != "inactive");
+                        t.unitId == requestData.Uid);
 
                     int tid = activeTenant != null ? activeTenant.Tid : 0;
 
@@ -1025,8 +1031,8 @@ namespace WebApplication1.Controllers
                     .Where(t =>
                         t.leaseStart.Date <= currentDate &&
                         t.leaseEnd.Date >= currentDate &&
-                        t.isTerminated == 0 &&            // 2. Sinigurado na hindi terminated ang tenant
-                        t.status.ToLower() == "active"    // 3. (Optional) Sinigurado na active ang status
+                        t.isTerminated == 0       // 2. Sinigurado na hindi terminated ang tenant
+                       
                     )
                     .Select(t => t.unitId)
                     .Distinct()
@@ -1225,7 +1231,8 @@ namespace WebApplication1.Controllers
                     var newAmenity = new amenity { name = name };
                     connect.amenity.Add(newAmenity);
                     connect.SaveChanges();
-
+                    CacheHelper.Remove("all-units");
+                    CacheHelper.Remove("all-browse-units");
                     CacheHelper.Remove("amenities"); // keep cache fresh (you cache GetAllAmenities)
                     AuditLogger.Log("settings", "info", "Added amenity: " + name, CurrentUserName());
 
@@ -1287,91 +1294,107 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                using (var connect = new DB_Context())
-                {
-                    var today = DateTime.Today;
-                    var expiringThresHold = today.AddDays(45);
-
-                    var units = connect.unit.ToList();
-                    var tenants = connect.tenant.ToList();
-                    var amenities = connect.amenity.ToList();
-                    var unitAmenities = connect.unit_amenity.ToList();
-
-                    // Cover image only. Pulling every image for every unit is what
-                    // blew past the serializer limit — the grid shows one thumbnail,
-                    // and the editor fetches the full set via GetUnitImages.
-                    var coverImages = connect.unit_image
-                        .GroupBy(i => i.Uid)
-                        .Select(g => g.OrderBy(i => i.displayOrder).FirstOrDefault())
-                        .ToList();
-
-                    var result = units.Select(u =>
+                var payload = CacheHelper.GetOrAdd(
+                    "all-units",
+                    1,
+                    () =>
                     {
-                        var tenant = tenants.FirstOrDefault(t =>
-                            t.unitId == u.Uid &&
-                            t.status != "inactive"
-                        );
+                        using (var connect = new DB_Context())
+                        {
+                            var today = DateTime.Today;
+                            var expiringThresHold = today.AddDays(45);
 
-                        string occupancy;
-                        if (tenant == null)
-                        {
-                            occupancy = "Vacant";
-                        }
-                        else if (tenant.leaseEnd <= expiringThresHold)
-                        {
-                            occupancy = "Expiring";
-                        }
-                        else
-                        {
-                            occupancy = "Occupied";
-                        }
+                            var units = connect.unit.ToList();
+                            var tenants = connect.tenant.ToList();
+                            var amenities = connect.amenity.ToList();
+                            var unitAmenities = connect.unit_amenity.ToList();
 
-                        var unitAmenityList = unitAmenities
-                            .Where(ua => ua.Uid == u.Uid)
-                            .Join(amenities,
-                                ua => ua.amenityId,
-                                a => a.id,
-                                (ua, a) => new
+                            // Cover image only. Pulling every image for every unit is what
+                            // blew past the serializer limit — the grid shows one thumbnail,
+                            // and the editor fetches the full set via GetUnitImages.
+                            var coverImages = connect.unit_image
+                                .GroupBy(i => i.Uid)
+                                .Select(g => g.OrderBy(i => i.displayOrder).FirstOrDefault())
+                                .ToList();
+
+                            var result = units.Select(u =>
+                            {
+                                var imageCounts = connect.unit_image
+                                    .GroupBy(i => i.Uid)
+                                    .Select(g => new
+                                    {
+                                        Uid = g.Key,
+                                        Count = g.Count()
+                                    })
+                                    .ToDictionary(x => x.Uid, x => x.Count);
+                                var tenant = tenants.FirstOrDefault(t =>
+                                    t.unitId == u.Uid
+                                );
+
+                                string occupancy;
+                                if (tenant == null)
                                 {
-                                    a.id,
-                                    a.name
-                                })
-                            .ToList();
+                                    occupancy = "Vacant";
+                                }
+                                else if (tenant.leaseEnd <= expiringThresHold)
+                                {
+                                    occupancy = "Expiring";
+                                }
+                                else
+                                {
+                                    occupancy = "Occupied";
+                                }
 
-                        var cover = coverImages.FirstOrDefault(i => i != null && i.Uid == u.Uid);
+                                var unitAmenityList = unitAmenities
+                                    .Where(ua => ua.Uid == u.Uid)
+                                    .Join(amenities,
+                                        ua => ua.amenityId,
+                                        a => a.id,
+                                        (ua, a) => new
+                                        {
+                                            a.id,
+                                            a.name
+                                        })
+                                    .ToList();
 
-                        return new
-                        {
-                            u.Uid,
-                            u.unitName,
-                            u.price,
-                            u.beds,
-                            u.sqm,
-                            u.floor,
-                            u.description,
-                            u.videoUrl,
-                            u.colorCode,
-                            u.status,
-                            u.address,
-                            u.maxOccupants,
-                            occupancy,
+                                var cover = coverImages.FirstOrDefault(i => i != null && i.Uid == u.Uid);
 
-                            // Same shape as before: [{ imageUrl: "..." }], just capped at one
-                            images = cover == null
-                                ? new List<object>()
-                                : new List<object> { new { cover.imageUrl } },
+                                return new
+                                {
+                                    u.Uid,
+                                    u.unitName,
+                                    u.price,
+                                    u.beds,
+                                    u.sqm,
+                                    u.floor,
+                                    u.description,
+                                    u.videoUrl,
+                                    u.colorCode,
+                                    u.status,
+                                    u.address,
+                                    u.maxOccupants,
+                                    occupancy,
 
-                            // How many there really are, for the grid badge
-                            imageCount = coverImages.Count(i => i != null && i.Uid == u.Uid) == 0
-                                ? 0
-                                : connect.unit_image.Count(i => i.Uid == u.Uid),
+                                    // Same shape as before: [{ imageUrl: "..." }], just capped at one
+                                    images = cover == null
+                                        ? new List<object>()
+                                        : new List<object> { new { cover.imageUrl } },
 
-                            amenities = unitAmenityList
-                        };
-                    }).ToList();
+                                    // How many there really are, for the grid badge
+                                    imageCount = imageCounts.ContainsKey(u.Uid)
+                                        ? imageCounts[u.Uid]
+                                        : 0,
 
-                    return LargeJson(new { success = true, data = result });
-                }
+                                    amenities = unitAmenityList
+                                };
+                            }).ToList();
+
+                            return new {success = true, data = result };
+                        }
+                    }
+
+                    );
+                return LargeJson(payload);
             }
             catch (Exception ex)
             {
@@ -1404,131 +1427,139 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                using (var connect = new DB_Context())
-                {
-                    var today = DateTime.Today;
-                    var expiringThreshold = today.AddDays(45);
-
-                    var tenants = connect.tenant.ToList();
-                    var units = connect.unit.ToList();
-                    var coOccupants = connect.co_occupant.ToList();
-                    var tenantDocuments = connect.tenant_document.ToList();
-
-                    var raw = (from t in tenants
-                               join u in units on t.unitId equals u.Uid into unitGroup
-                               from u in unitGroup.DefaultIfEmpty()
-                               select new
-                               {
-                                   t.Tid,
-                                   t.tenantNumber,
-                                   t.name,
-                                   t.email,
-                                   t.phone,
-                                   t.address,
-                                   t.occupation,
-                                   t.status,
-                                   t.leaseStart,
-                                   t.leaseEnd,
-                                   t.isTerminated,
-                                   t.unitId,
-                                   t.occupancyTypeId,
-                                   t.passwordHash,
-                                   unitName = u != null ? u.unitName : null,
-                                   maxOccupants = u != null ? u.maxOccupants : 0,
-                                   coOccupantsList = coOccupants.Where(c => c.Tid == t.Tid).Select(c => new
-                                   {
-                                       c.id,
-                                       c.Tid,
-                                       c.name,
-                                       c.phone,
-                                       c.address
-                                   }).ToList(),
-                                   additionalOccupantsCount = coOccupants.Count(c => c.Tid == t.Tid),
-                                   idFiles = tenantDocuments
-                                       .Where(d => d.Tid == t.Tid)
-                                       .Select(d => new
-                                       {
-                                           id = d.id,
-                                           url = d.fileUrl,
-                                           fileName = d.fileName,
-                                           fileType = d.fileType
-                                       })
-                                       .ToList()
-                               }).ToList();
-
-                    var data = raw.Select(t =>
+                var payload = CacheHelper.GetOrAdd(
+                    "all-tenants",
+                    1,
+                    () =>
                     {
-                        // Occupancy label from the type id
-                        string occupancyLabel;
-                        switch (t.occupancyTypeId)
+                        using (var connect = new DB_Context())
                         {
-                            case 1: occupancyLabel = "Single Occupant"; break;
-                            case 2: occupancyLabel = "Household"; break;
-                            case 3: occupancyLabel = "Bedspace"; break;
-                            default: occupancyLabel = "\u2014"; break;
+                            var today = DateTime.Today;
+                            var expiringThreshold = today.AddDays(45);
+
+                            var tenants = connect.tenant.ToList();
+                            var units = connect.unit.ToList();
+                            var coOccupants = connect.co_occupant.ToList();
+                            var tenantDocuments = connect.tenant_document.ToList();
+
+                            var raw = (from t in tenants
+                                       join u in units on t.unitId equals u.Uid into unitGroup
+                                       from u in unitGroup.DefaultIfEmpty()
+                                       select new
+                                       {
+                                           t.Tid,
+                                           t.tenantNumber,
+                                           t.name,
+                                           t.email,
+                                           t.phone,
+                                           t.address,
+                                           t.occupation,
+                                           t.leaseStart,
+                                           t.leaseEnd,
+                                           t.isTerminated,
+                                           t.unitId,
+                                           t.occupancyTypeId,
+                                           t.passwordHash,
+                                           unitName = u != null ? u.unitName : null,
+                                           maxOccupants = u != null ? u.maxOccupants : 0,
+                                           coOccupantsList = coOccupants.Where(c => c.Tid == t.Tid).Select(c => new
+                                           {
+                                               c.id,
+                                               c.Tid,
+                                               c.name,
+                                               c.phone,
+                                               c.address
+                                           }).ToList(),
+                                           additionalOccupantsCount = coOccupants.Count(c => c.Tid == t.Tid),
+                                           idFiles = tenantDocuments
+                                               .Where(d => d.Tid == t.Tid)
+                                               .Select(d => new
+                                               {
+                                                   id = d.id,
+                                                   url = d.fileUrl,
+                                                   fileName = d.fileName,
+                                                   fileType = d.fileType
+                                               })
+                                               .ToList()
+                                       }).ToList();
+
+                            var data = raw.Select(t =>
+                            {
+                                // Occupancy label from the type id
+                                string occupancyLabel;
+                                switch (t.occupancyTypeId)
+                                {
+                                    case 1: occupancyLabel = "Single Occupant"; break;
+                                    case 2: occupancyLabel = "Household"; break;
+                                    case 3: occupancyLabel = "Bedspace"; break;
+                                    default: occupancyLabel = "\u2014"; break;
+                                }
+
+                                // Headcount = main tenant + co-occupants
+                                int totalOccupants = 1 + t.additionalOccupantsCount;
+                                int slotsOpen = t.maxOccupants > 0
+                                    ? Math.Max(0, t.maxOccupants - totalOccupants)
+                                    : 0;
+
+                                var daysLeft = (int?)(t.leaseEnd.Date - today).TotalDays;
+
+                                string liveStatus;
+                                if (t.isTerminated == 1) liveStatus = "Terminated";
+                                else if (t.leaseEnd < today) liveStatus = "Expired";
+                                else if (t.leaseEnd <= expiringThreshold) liveStatus = "Expiring";
+                                else liveStatus = "Active";
+
+                                var leaseDurationMonths = ((t.leaseEnd.Year - t.leaseStart.Year) * 12)
+                                                          + t.leaseEnd.Month - t.leaseStart.Month;
+                                string contractType;
+                                if (leaseDurationMonths <= 3) contractType = "Short-term";
+                                else if (leaseDurationMonths <= 6) contractType = "Mid-term";
+                                else contractType = "Long-term";
+
+                                return new
+                                {
+                                    Tid = t.Tid,
+                                    tenantNumber = t.tenantNumber,
+                                    name = t.name,
+                                    email = t.email,
+                                    phone = t.phone,
+                                    address = t.address,
+                                    occupation = t.occupation,
+                                    status = liveStatus,
+                                    coOccupants = t.coOccupantsList,
+                                    maxOccupants = t.maxOccupants,
+
+                                    leaseStart = t.leaseStart.ToString("yyyy-MM-dd"),
+                                    leaseEnd = t.leaseEnd.ToString("yyyy-MM-dd"),
+
+                                    isTerminated = t.isTerminated == 1,
+                                    unit = t.unitName,
+                                    unitId = t.unitId,
+
+                                    occupancyTypeId = t.occupancyTypeId,
+                                    occupancyLabel = occupancyLabel,
+                                    additionalOccupantsCount = t.additionalOccupantsCount,
+                                    totalOccupants = totalOccupants,
+                                    slotsOpen = slotsOpen,
+                                    isJoinable = (t.occupancyTypeId == 3 && slotsOpen > 0 && t.isTerminated != 1),
+
+                                    daysLeft = daysLeft,
+                                    liveStatus = liveStatus,
+                                    contractType = contractType,
+                                    latestPaymentStatus = "None",
+
+                                    idFiles = t.idFiles,
+                                    idFilesCount = t.idFiles.Count
+                                };
+                            }).ToList();
+
+                            return new{ success = true, data = data };
+
                         }
-
-                        // Headcount = main tenant + co-occupants
-                        int totalOccupants = 1 + t.additionalOccupantsCount;
-                        int slotsOpen = t.maxOccupants > 0
-                            ? Math.Max(0, t.maxOccupants - totalOccupants)
-                            : 0;
-
-                        var daysLeft = (int?)(t.leaseEnd.Date - today).TotalDays;
-
-                        string liveStatus;
-                        if (t.isTerminated == 1) liveStatus = "Terminated";
-                        else if (t.leaseEnd < today) liveStatus = "Expired";
-                        else if (t.leaseEnd <= expiringThreshold) liveStatus = "Expiring";
-                        else liveStatus = "Active";
-
-                        var leaseDurationMonths = ((t.leaseEnd.Year - t.leaseStart.Year) * 12)
-                                                  + t.leaseEnd.Month - t.leaseStart.Month;
-                        string contractType;
-                        if (leaseDurationMonths <= 3) contractType = "Short-term";
-                        else if (leaseDurationMonths <= 6) contractType = "Mid-term";
-                        else contractType = "Long-term";
-
-                        return new
-                        {
-                            Tid = t.Tid,
-                            tenantNumber = t.tenantNumber,
-                            name = t.name,
-                            email = t.email,
-                            phone = t.phone,
-                            address = t.address,
-                            occupation = t.occupation,
-                            status = t.status,
-                            coOccupants = t.coOccupantsList,
-                            maxOccupants = t.maxOccupants,
-
-                            leaseStart = t.leaseStart.ToString("yyyy-MM-dd"),
-                            leaseEnd = t.leaseEnd.ToString("yyyy-MM-dd"),
-
-                            isTerminated = t.isTerminated == 1,
-                            unit = t.unitName,
-                            unitId = t.unitId,
-                            passwordHash = t.passwordHash,
-
-                            occupancyTypeId = t.occupancyTypeId,
-                            occupancyLabel = occupancyLabel,
-                            additionalOccupantsCount = t.additionalOccupantsCount,
-                            totalOccupants = totalOccupants,
-                            slotsOpen = slotsOpen,
-                            isJoinable = (t.occupancyTypeId == 3 && slotsOpen > 0 && t.isTerminated != 1),
-
-                            daysLeft = daysLeft,
-                            liveStatus = liveStatus,
-                            contractType = contractType,
-                            latestPaymentStatus = "None",
-
-                            idFiles = t.idFiles,
-                            idFilesCount = t.idFiles.Count
-                        };
-                    }).ToList();
-
-                    return Json(new { success = true, data = data }, JsonRequestBehavior.AllowGet);
-                }
+                    }
+                    );
+                return Json(payload, JsonRequestBehavior.AllowGet);
+              
             }
             catch (Exception ex)
             {
@@ -1736,7 +1767,8 @@ namespace WebApplication1.Controllers
                     connect.unit.Remove(deleteUnit);
                     connect.unit_image.RemoveRange(deleteUnitImage);
                     connect.SaveChanges();
-
+                    CacheHelper.Remove("all-browse-units");
+                    CacheHelper.Remove("all-units");
                     AuditLogger.Log("settings", "warning", "Deleted unit: " + deleteUnit.unitName, CurrentUserName());
                 }
                 return Json(new { success = true, message = "Unit Successfully Deleted" });
@@ -1806,132 +1838,141 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                using (var connect = new DB_Context())
-                {
-                    var today = DateTime.Today;
-
-                    var activeUnits = connect.unit.Where(u => u.status == "active").ToList();
-                    var liveTenants = connect.tenant
-                        .Where(t => t.isTerminated != 1 && t.leaseEnd >= today)
-                        .ToList();
-                    var coOccupants = connect.co_occupant.ToList();
-
-                    // Build availability per unit
-                    var availability = activeUnits.Select(u =>
+                var payload = CacheHelper.GetOrAdd(
+                    "all-browse-units",
+                    1,
+                    () =>
                     {
-                        var mainTenant = liveTenants.FirstOrDefault(t => t.unitId == u.Uid);
-
-                        if (mainTenant == null)
+                        using (var connect = new DB_Context())
                         {
-                            // Fully vacant
+                            var today = DateTime.Today;
+
+                            var activeUnits = connect.unit.Where(u => u.status == "active").ToList();
+                            var liveTenants = connect.tenant
+                                .Where(t => t.isTerminated != 1 && t.leaseEnd >= today)
+                                .ToList();
+                            var coOccupants = connect.co_occupant.ToList();
+
+                            // Build availability per unit
+                            var availability = activeUnits.Select(u =>
+                            {
+                                var mainTenant = liveTenants.FirstOrDefault(t => t.unitId == u.Uid);
+
+                                if (mainTenant == null)
+                                {
+                                    // Fully vacant
+                                    return new
+                                    {
+                                        Uid = u.Uid,
+                                        available = true,
+                                        joinable = false,
+                                        slotsOpen = u.maxOccupants,
+                                        totalOccupants = 0
+                                    };
+                                }
+
+                                int headcount = 1 + coOccupants.Count(c => c.Tid == mainTenant.Tid);
+                                int open = Math.Max(0, u.maxOccupants - headcount);
+
+                                // Only Bedspace (3) stays listable while it has open slots
+                                bool joinable = UnitAvailabilityHelper.HasOpenBedspace(
+                                    mainTenant.occupancyTypeId, u.maxOccupants, headcount);
+
+                                return new
+                                {
+                                    Uid = u.Uid,
+                                    available = joinable,
+                                    joinable = joinable,
+                                    slotsOpen = open,
+                                    totalOccupants = headcount
+                                };
+                            }).ToList();
+
+                            var availableIds = availability.Where(a => a.available).Select(a => a.Uid).ToList();
+
+                            var units = activeUnits
+                                .Where(u => availableIds.Contains(u.Uid))
+                                .OrderBy(u => u.unitName)
+                                .ToList();
+
+                            var unitIds = units.Select(u => u.Uid).ToList();
+
+                            var images = connect.unit_image
+                                .Where(i => unitIds.Contains(i.Uid))
+                                .OrderBy(i => i.displayOrder)
+                                .Select(i => new { i.Uid, i.imageUrl })
+                                .ToList();
+
+                            var amenities = (from ua in connect.unit_amenity
+                                             join a in connect.amenity on ua.amenityId equals a.id
+                                             where unitIds.Contains(ua.Uid)
+                                             select new { ua.Uid, a.name })
+                                            .ToList();
+
+                            var data = units.Select(u =>
+                            {
+                                var av = availability.First(a => a.Uid == u.Uid);
+
+                                return new
+                                {
+                                    id = u.Uid,
+                                    name = u.unitName,
+                                    price = u.price,
+                                    beds = u.beds,
+                                    sqm = u.sqm,
+                                    floor = u.floor,
+                                    description = u.description ?? "",
+                                    address = u.address ?? "",
+                                    videoUrl = u.videoUrl,
+                                    colorCode = u.colorCode,
+                                    status = u.status,
+                                    maxOccupants = u.maxOccupants,
+
+                                    // Bedspace info for the renter-facing badge
+                                    joinable = av.joinable,
+                                    slotsOpen = av.slotsOpen,
+                                    currentOccupants = av.totalOccupants,
+                                    availabilityLabel = av.joinable
+                                        ? ("Bedspace \u00b7 " + av.slotsOpen + " slot(s) open")
+                                        : "Vacant",
+
+                                    images = images
+                                        .Where(i => i.Uid == u.Uid)
+                                        .Select(i => i.imageUrl)
+                                        .Take(1)
+                                        .ToList(),
+
+                                    amenities = amenities
+                                        .Where(a => a.Uid == u.Uid)
+                                        .Select(a => a.name)
+                                        .ToList()
+                                };
+                            }).ToList();
+
+                            var bedOptions = units
+                                .Where(u => !string.IsNullOrEmpty(u.beds))
+                                .Select(u => u.beds)
+                                .Distinct()
+                                .OrderBy(b => b)
+                                .ToList();
+
+                            var amenityOptions = connect.amenity
+                                .OrderBy(a => a.name)
+                                .Select(a => a.name)
+                                .ToList();
+
                             return new
                             {
-                                Uid = u.Uid,
-                                available = true,
-                                joinable = false,
-                                slotsOpen = u.maxOccupants,
-                                totalOccupants = 0
+                                success = true,
+                                data = data,
+                                bedOptions = bedOptions,
+                                amenityOptions = amenityOptions
                             };
                         }
-
-                        int headcount = 1 + coOccupants.Count(c => c.Tid == mainTenant.Tid);
-                        int open = Math.Max(0, u.maxOccupants - headcount);
-
-                        // Only Bedspace (3) stays listable while it has open slots
-                        bool joinable = UnitAvailabilityHelper.HasOpenBedspace(
-                            mainTenant.occupancyTypeId, u.maxOccupants, headcount);
-
-                        return new
-                        {
-                            Uid = u.Uid,
-                            available = joinable,
-                            joinable = joinable,
-                            slotsOpen = open,
-                            totalOccupants = headcount
-                        };
-                    }).ToList();
-
-                    var availableIds = availability.Where(a => a.available).Select(a => a.Uid).ToList();
-
-                    var units = activeUnits
-                        .Where(u => availableIds.Contains(u.Uid))
-                        .OrderBy(u => u.unitName)
-                        .ToList();
-
-                    var unitIds = units.Select(u => u.Uid).ToList();
-
-                    var images = connect.unit_image
-                        .Where(i => unitIds.Contains(i.Uid))
-                        .OrderBy(i => i.displayOrder)
-                        .Select(i => new { i.Uid, i.imageUrl })
-                        .ToList();
-
-                    var amenities = (from ua in connect.unit_amenity
-                                     join a in connect.amenity on ua.amenityId equals a.id
-                                     where unitIds.Contains(ua.Uid)
-                                     select new { ua.Uid, a.name })
-                                    .ToList();
-
-                    var data = units.Select(u =>
-                    {
-                        var av = availability.First(a => a.Uid == u.Uid);
-
-                        return new
-                        {
-                            id = u.Uid,
-                            name = u.unitName,
-                            price = u.price,
-                            beds = u.beds,
-                            sqm = u.sqm,
-                            floor = u.floor,
-                            description = u.description ?? "",
-                            address = u.address ?? "",
-                            videoUrl = u.videoUrl,
-                            colorCode = u.colorCode,
-                            status = u.status,
-                            maxOccupants = u.maxOccupants,
-
-                            // Bedspace info for the renter-facing badge
-                            joinable = av.joinable,
-                            slotsOpen = av.slotsOpen,
-                            currentOccupants = av.totalOccupants,
-                            availabilityLabel = av.joinable
-                                ? ("Bedspace \u00b7 " + av.slotsOpen + " slot(s) open")
-                                : "Vacant",
-
-                            images = images
-                                .Where(i => i.Uid == u.Uid)
-                                .Select(i => i.imageUrl)
-                                .Take(1)
-                                .ToList(),
-
-                            amenities = amenities
-                                .Where(a => a.Uid == u.Uid)
-                                .Select(a => a.name)
-                                .ToList()
-                        };
-                    }).ToList();
-
-                    var bedOptions = units
-                        .Where(u => !string.IsNullOrEmpty(u.beds))
-                        .Select(u => u.beds)
-                        .Distinct()
-                        .OrderBy(b => b)
-                        .ToList();
-
-                    var amenityOptions = connect.amenity
-                        .OrderBy(a => a.name)
-                        .Select(a => a.name)
-                        .ToList();
-
-                    return LargeJson(new
-                    {
-                        success = true,
-                        data = data,
-                        bedOptions = bedOptions,
-                        amenityOptions = amenityOptions
-                    });
-                }
+                    }
+                    );
+                return LargeJson(payload);
+               
             }
             catch (Exception ex)
             {

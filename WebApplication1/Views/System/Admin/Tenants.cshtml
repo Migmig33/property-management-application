@@ -219,7 +219,6 @@
                         <th class="px-5 py-3 text-xs text-slate-500 font-medium whitespace-nowrap">Days Left</th>
                         <th class="px-5 py-3 text-xs text-slate-500 font-medium whitespace-nowrap">Contract</th>
                         <th class="px-5 py-3 text-xs text-slate-500 font-medium whitespace-nowrap">Status</th>
-                        <th class="px-5 py-3 text-xs text-slate-500 font-medium whitespace-nowrap">Payment</th>
                         <th class="px-5 py-3 text-xs text-slate-500 font-medium whitespace-nowrap">IDs</th>
                         <th class="px-5 py-3 text-xs text-slate-500 font-medium whitespace-nowrap">Actions</th>
                     </tr>
@@ -306,12 +305,7 @@
                             </span>
                         </td>
 
-                        <!-- Payment -->
-                        <td class="px-5 py-3 whitespace-nowrap">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium" ng-class="getPaymentClass(t.latestPaymentStatus)">
-                                <i data-lucide="credit-card" class="w-2.5 h-2.5"></i>{{ t.latestPaymentStatus === 'None' ? 'No Record' : t.latestPaymentStatus }}
-                            </span>
-                        </td>
+                     
 
                         <!-- IDs -->
                         <td class="px-5 py-3 whitespace-nowrap">

@@ -41,7 +41,7 @@ namespace WebApplication1.Controllers
 
                                 UNITS ({allUnits.Count} total):
                                 {string.Join("\n", allUnits.Select(u => {
-                                                        var t = allTenants.FirstOrDefault(x => x.unitId == u.Uid && x.status != "inactive");
+                                                        var t = allTenants.FirstOrDefault(x => x.unitId == u.Uid);
                                                         var occupancy = t == null ? "Vacant" : t.leaseEnd <= expiringThreshold ? "Expiring" : "Occupied";
                                                         var coCount = t != null ? allCoOccupants.Count(c => c.Tid == t.Tid) : 0;
                                                         return $"- {u.unitName} | Floor {u.floor} | {u.beds} | {u.sqm}sqm | ₱{u.price:N0}/mo | Status: {u.status} | Occupancy: {occupancy} | Occupants: {(t != null ? 1 + coCount : 0)}/{u.maxOccupants} | Tenant: {(t != null ? t.name : "None")}";
@@ -52,7 +52,7 @@ namespace WebApplication1.Controllers
                                                         var u = allUnits.FirstOrDefault(x => x.Uid == t.unitId);
                                                         var coList = allCoOccupants.Where(c => c.Tid == t.Tid).ToList();
                                                         var leaseStatus = t.leaseEnd <= expiringThreshold ? "Expiring Soon" : t.leaseEnd < today ? "Expired" : "Active";
-                                                        return $"- {t.name} | Unit: {(u != null ? u.unitName : t.unitId.ToString())} | Email: {t.email} | Phone: {t.phone} | Occupation: {t.occupation} | Lease: {t.leaseStart:MMM dd, yyyy} to {t.leaseEnd:MMM dd, yyyy} | Lease Status: {leaseStatus} | Status: {t.status} | Co-Occupants ({coList.Count}): {(coList.Any() ? string.Join(", ", coList.Select(c => c.name)) : "None")}";
+                                                        return $"- {t.name} | Unit: {(u != null ? u.unitName : t.unitId.ToString())} | Email: {t.email} | Phone: {t.phone} | Occupation: {t.occupation} | Lease: {t.leaseStart:MMM dd, yyyy} to {t.leaseEnd:MMM dd, yyyy} | Lease Status: {leaseStatus} | Co-Occupants ({coList.Count}): {(coList.Any() ? string.Join(", ", coList.Select(c => c.name)) : "None")}";
                                                     }))}
 
                                 BOOKINGS ({allBookings.Count} total):

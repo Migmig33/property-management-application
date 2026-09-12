@@ -23,10 +23,13 @@ namespace WebApplication1.Models.Tables
                     return "Paid";
                 }
 
-           
 
-                // 3. Otherwise, the due date hasn't passed yet.
+                if (paidDate == null) { 
                 return "Unpaid";
+
+                }
+                // 3. Otherwise, the due date hasn't passed yet.
+                return null;
             }
         }
         public string billingPeriod { get; set; }

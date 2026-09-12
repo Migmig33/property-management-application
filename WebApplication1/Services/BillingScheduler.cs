@@ -26,7 +26,6 @@ namespace WebApplication1.Services
                 // Eligible tenants: active, not terminated, lease still covers today
                 var tenants = db.tenant
                     .Where(t => t.isTerminated == 0
-                                && t.status == "Active"
                                 && t.leaseStart <= today
                                 && t.leaseEnd >= today
                                 && t.unitId > 0)

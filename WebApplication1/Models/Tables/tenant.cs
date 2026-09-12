@@ -15,7 +15,6 @@ namespace WebApplication1.Models.Tables
         public string phone { get; set; }
         public System.DateTime leaseStart { get; set; }
         public System.DateTime leaseEnd { get; set; }
-        public string status { get; set; }
         public string address { get; set; }
         public string occupation { get; set; }
         public string passwordHash { get; set; }
