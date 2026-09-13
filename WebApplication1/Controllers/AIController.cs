@@ -75,7 +75,7 @@ namespace WebApplication1.Controllers
                                 {string.Join("\n", allMaintenance.Select(m => {
                                                         var t = allTenants.FirstOrDefault(x => x.Tid == m.Tid);
                                                         var u = allUnits.FirstOrDefault(x => x.Uid == m.Uid);
-                                                        return $"- [{m.status}] {m.category ?? "N/A"} | Priority: {m.priority ?? "N/A"} | Tenant: {(t != null ? t.name : "Unknown")} | Unit: {(u != null ? u.unitName : "Unknown")} | Reported: {(m.reportedDate != null ? ((DateTime)m.reportedDate).ToString("MMM dd, yyyy") : "N/A")} | Resolved: {(m.resolvedDate != null ? ((DateTime)m.resolvedDate).ToString("MMM dd, yyyy") : "Not yet resolved")} | Description: {m.description ?? "N/A"}";
+                                                        return $"- [{m.status}] {m.category ?? "N/A"} | Tenant: {(t != null ? t.name : "Unknown")} | Unit: {(u != null ? u.unitName : "Unknown")} | Reported: {(m.reportedDate != null ? ((DateTime)m.reportedDate).ToString("MMM dd, yyyy") : "N/A")} | Resolved: {(m.resolvedDate != null ? ((DateTime)m.resolvedDate).ToString("MMM dd, yyyy") : "Not yet resolved")} | Description: {m.description ?? "N/A"}";
                                                     }))}
                                 Maintenance Summary:
                                 - Pending:     {allMaintenance.Count(m => m.status == "Pending")}

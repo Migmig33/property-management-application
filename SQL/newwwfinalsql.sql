@@ -1,7 +1,7 @@
 -- --------------------------------------------------------
--- Host:                         127.0.0.1
--- Server version:               10.4.32-MariaDB - mariadb.org binary distribution
--- Server OS:                    Win64
+-- Host:                         mysql-greenresc-migztan66-83f7.e.aivencloud.com
+-- Server version:               8.4.8 - Source distribution
+-- Server OS:                    Linux
 -- HeidiSQL Version:             12.17.0.7270
 -- --------------------------------------------------------
 
@@ -16,196 +16,195 @@
 
 
 -- Dumping database structure for db_greenresidences
-CREATE DATABASE IF NOT EXISTS `db_greenresidences` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
+CREATE DATABASE IF NOT EXISTS `db_greenresidences` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `db_greenresidences`;
 
 -- Dumping structure for table db_greenresidences.admin
 CREATE TABLE IF NOT EXISTS `admin` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `password` varchar(255) NOT NULL,
-  `email` varchar(50) NOT NULL,
-  `role` int(11) DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `password` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `role` int DEFAULT NULL,
   `lastActive` datetime DEFAULT NULL,
-  `name` varchar(50) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
+  `name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.amenity
 CREATE TABLE IF NOT EXISTS `amenity` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.audit_log
 CREATE TABLE IF NOT EXISTS `audit_log` (
-  `logId` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(20) NOT NULL,
-  `severity` varchar(20) NOT NULL DEFAULT 'info',
-  `message` varchar(500) NOT NULL,
-  `actor` varchar(150) DEFAULT NULL,
+  `logId` int NOT NULL AUTO_INCREMENT,
+  `type` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
+  `severity` varchar(20) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'info',
+  `message` varchar(500) COLLATE utf8mb4_general_ci NOT NULL,
+  `actor` varchar(150) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `createdAt` datetime NOT NULL,
   PRIMARY KEY (`logId`)
-) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=133 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.booking
 CREATE TABLE IF NOT EXISTS `booking` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `Uid` int(11) NOT NULL,
-  `guestName` varchar(150) DEFAULT NULL,
-  `guestEmail` varchar(150) DEFAULT NULL,
-  `guestPhone` varchar(50) DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `Uid` int NOT NULL,
+  `guestName` varchar(150) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `guestEmail` varchar(150) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `guestPhone` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `bookingDatetime` datetime DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `cancelReason` text DEFAULT NULL,
+  `status` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `notes` text COLLATE utf8mb4_general_ci,
+  `cancelReason` text COLLATE utf8mb4_general_ci,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.busy_schedule
 CREATE TABLE IF NOT EXISTS `busy_schedule` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int NOT NULL AUTO_INCREMENT,
   `busyDate` datetime NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.co_occupant
 CREATE TABLE IF NOT EXISTS `co_occupant` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `Tid` int(11) DEFAULT NULL,
-  `name` varchar(150) NOT NULL,
-  `phone` varchar(50) DEFAULT NULL,
-  `address` varchar(255) DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `Tid` int DEFAULT NULL,
+  `name` varchar(150) COLLATE utf8mb4_general_ci NOT NULL,
+  `phone` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `address` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.maintenance_request
 CREATE TABLE IF NOT EXISTS `maintenance_request` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `Uid` int(11) DEFAULT NULL,
-  `Tid` int(11) DEFAULT NULL,
-  `category` varchar(100) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
-  `priority` varchar(50) DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `Uid` int DEFAULT NULL,
+  `Tid` int DEFAULT NULL,
+  `category` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_general_ci,
+  `status` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `reportedDate` datetime DEFAULT NULL,
   `resolvedDate` datetime DEFAULT NULL,
+  `scheduledDate` datetime DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.payment
 CREATE TABLE IF NOT EXISTS `payment` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `Tid` int(11) DEFAULT NULL,
-  `Uid` int(11) DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `Tid` int DEFAULT NULL,
+  `Uid` int DEFAULT NULL,
   `amount` decimal(10,2) NOT NULL,
   `dueDate` date DEFAULT NULL,
   `paidDate` date DEFAULT NULL,
-  `billingPeriod` varchar(100) DEFAULT NULL,
+  `billingPeriod` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.sms_log
 CREATE TABLE IF NOT EXISTS `sms_log` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `Tid` int(11) NOT NULL,
-  `message` varchar(500) DEFAULT NULL,
-  `type` varchar(50) DEFAULT NULL,
-  `status` varchar(20) DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `Tid` int NOT NULL,
+  `message` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `type` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `status` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `sentAt` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.tenant
 CREATE TABLE IF NOT EXISTS `tenant` (
-  `Tid` int(11) NOT NULL AUTO_INCREMENT,
-  `tenantNumber` varchar(50) DEFAULT NULL,
-  `unitId` int(11) DEFAULT NULL,
-  `name` varchar(150) NOT NULL,
-  `email` varchar(150) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
+  `Tid` int NOT NULL AUTO_INCREMENT,
+  `tenantNumber` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `unitId` int DEFAULT NULL,
+  `name` varchar(150) COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(150) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `leaseStart` date DEFAULT NULL,
   `leaseEnd` date DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
-  `address` varchar(255) DEFAULT NULL,
-  `occupation` varchar(100) DEFAULT NULL,
-  `passwordHash` varchar(255) DEFAULT NULL,
-  `occupancyTypeId` int(11) DEFAULT NULL,
+  `address` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `occupation` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `passwordHash` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `occupancyTypeId` int DEFAULT NULL,
   `isTerminated` tinyint(1) DEFAULT NULL,
   `lastActive` datetime DEFAULT NULL,
   PRIMARY KEY (`Tid`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.tenant_document
 CREATE TABLE IF NOT EXISTS `tenant_document` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `Tid` int(11) DEFAULT NULL,
-  `fileName` varchar(255) DEFAULT NULL,
-  `fileType` varchar(50) DEFAULT NULL,
-  `fileUrl` longtext DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `Tid` int DEFAULT NULL,
+  `fileName` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `fileType` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `fileUrl` longtext COLLATE utf8mb4_general_ci,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.unit
 CREATE TABLE IF NOT EXISTS `unit` (
-  `Uid` int(11) NOT NULL AUTO_INCREMENT,
-  `unitName` varchar(100) NOT NULL,
+  `Uid` int NOT NULL AUTO_INCREMENT,
+  `unitName` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `price` decimal(10,2) NOT NULL,
-  `beds` varchar(50) DEFAULT NULL,
-  `sqm` int(11) DEFAULT NULL,
-  `floor` varchar(20) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `videoUrl` longtext DEFAULT NULL,
-  `colorCode` varchar(20) DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
-  `address` varchar(255) DEFAULT NULL,
-  `maxOccupants` int(11) DEFAULT NULL,
+  `beds` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `sqm` int DEFAULT NULL,
+  `floor` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_general_ci,
+  `videoUrl` longtext COLLATE utf8mb4_general_ci,
+  `colorCode` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `status` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `address` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `maxOccupants` int DEFAULT NULL,
   PRIMARY KEY (`Uid`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.unit_amenity
 CREATE TABLE IF NOT EXISTS `unit_amenity` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `Uid` int(11) NOT NULL,
-  `amenityId` int(11) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `Uid` int NOT NULL,
+  `amenityId` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=105 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table db_greenresidences.unit_image
 CREATE TABLE IF NOT EXISTS `unit_image` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `Uid` int(11) DEFAULT NULL,
-  `imageUrl` longtext NOT NULL,
-  `displayOrder` int(11) DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `Uid` int DEFAULT NULL,
+  `imageUrl` longtext COLLATE utf8mb4_general_ci NOT NULL,
+  `displayOrder` int DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=107 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 

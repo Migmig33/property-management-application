@@ -2006,32 +2006,31 @@
         var input = document.getElementById('photoInput');
         if (input) input.value = "";
     };
-
-    $scope.handleSubmitRequest = function (event) {
-        if (event) event.preventDefault();
-
-        if (!$scope.reqDescription || !$scope.reqDescription.trim()) {
+    $scope.requestForm = {
+        reqDescription: "",
+        reqCategory: ""    
+    }
+    $scope.handleSubmitRequest = function () {
+        if (!$scope.requestForm.reqDescription) {
             $scope.showToast("Please describe the issue.", "error");
             return;
         }
-
         if (!$scope.currentTenant) {
             $scope.showToast("System error: Tenant data not loaded.", "error");
             return;
-        }
-
+        } 
         $scope.submitting = true;
 
         var newRequest = {
             Tid: $scope.currentTenant.Tid,
             Uid: $scope.currentTenant.unitId,
-            category: $scope.reqCategory,
-            description: $scope.reqDescription.trim(),
+            category: $scope.requestForm.reqCategory,
+            description: $scope.requestForm.reqDescription.trim(),
             status: "Pending",
             priority: "Medium",
             reportedDate: new Date().toISOString()
         };
-
+        console.log(newRequest);
         if ($scope.reqPhoto) {
             newRequest.reqPhoto = $scope.reqPhoto;
         }

@@ -71,7 +71,7 @@ namespace WebApplication1.Controllers
         {
             return View("Admin/Dashboard");
         }
-        //[CheckSession(AllowedRoles = new[] { 2 })]
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Units()
         {
             return View("Admin/Units");
@@ -157,8 +157,7 @@ namespace WebApplication1.Controllers
                 {
                     success = true,
                     url = videoUrl,
-                    physicalPath = filePath,
-                    fileExists = System.IO.File.Exists(filePath)
+                
                 });
 
             }catch(Exception ex)
@@ -833,7 +832,6 @@ namespace WebApplication1.Controllers
                             Uid = requestData.Uid,
                             Tid = requestData.Tid, // <-- Direct assignment!
                             category = requestData.category,
-                            priority = requestData.priority,
                             description = requestData.description,
                             status = "Pending",
                             reportedDate = DateTime.Now,

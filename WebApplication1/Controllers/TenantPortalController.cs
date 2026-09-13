@@ -85,7 +85,6 @@ namespace WebApplication1.Controllers
                                       category = m.category,
                                       description = m.description,
                                       status = m.status,
-                                      priority = m.priority,
 
                                       // 3. Convert Dates to standard readable strings!
                                       // "yyyy-MM-dd" gives you "2023-10-25"
@@ -93,7 +92,8 @@ namespace WebApplication1.Controllers
                                       reportedDate = m.reportedDate.ToString("yyyy-MM-dd"),
                                       resolvedDate = m.resolvedDate.HasValue
                                                      ? m.resolvedDate.Value.ToString("yyyy-MM-dd")
-                                                     : null
+                                                     : null,
+                                     scheduledDate = m.scheduledDate.HasValue ? m.resolvedDate.Value.ToString("yyyy-MM-dd") : null
                                   });
 
                 return Json(requests, JsonRequestBehavior.AllowGet);
@@ -115,7 +115,6 @@ namespace WebApplication1.Controllers
                     // Force server-side dates/statuses to prevent client manipulation
                     req.reportedDate = DateTime.Now;
                     req.status = "Pending";
-                    req.priority = req.priority ?? "Medium";
 
                     using (var connect = new DB_Context())
                     {

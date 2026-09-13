@@ -285,14 +285,14 @@
 
                 <!-- Expandable Form -->
                 <div ng-if="showRequestForm" class="overflow-hidden">
-                    <form ng-submit="handleSubmitRequest($event)" class="bg-green-50 border border-green-100 rounded-2xl p-5 mb-5 space-y-4">
+                    <div class="bg-green-50 border border-green-100 rounded-2xl p-5 mb-5 space-y-4">
                         <p class="text-sm text-green-800 font-medium">Submit a New Request</p>
 
                         <!-- Category -->
                         <div>
                             <label class="block text-xs text-slate-600 font-medium mb-1.5">Category *</label>
                             <select name="reqCategory"
-                                    ng-model="$parent.reqCategory"
+                                    ng-model="requestForm.reqCategory"
                                     class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                                 <option ng-repeat="c in MAINTENANCE_CATEGORIES" value="{{ c }}">{{ c }}</option>
                             </select>
@@ -304,20 +304,21 @@
                                 Description * <span class="text-slate-400 font-normal">(describe the issue clearly)</span>
                             </label>
                             <textarea name="reqDescription"
-                                      ng-model="$parent.reqDescription"
+                                      ng-model="requestForm.reqDescription"
                                       rows="4"
                                       placeholder="e.g. The bathroom faucet has been leaking since yesterday morning..."
                                       class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
-                            <p class="text-xs text-slate-400 mt-1">{{ reqDescription.length }}/100 characters</p>
+                            <p class="text-xs text-slate-400 mt-1">{{ requestForm.reqDescription.length }}/100 characters</p>
                         </div>
 
-                        <button type="submit"
-                                ng-disabled="submitting || !reqDescription.trim()"
+                        <button ng-click="handleSubmitRequest()"
+                              
                                 class="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-all shadow-sm shadow-green-200 focus:outline-none focus:ring-2 focus:ring-green-500">
                             <lucide-icon name="send" size="14"></lucide-icon>
                             {{ submitting ? 'Submitting…' : 'Submit Request' }}
                         </button>
-                    </form>
+                      
+                    </div>
                 </div>
 
                 <!-- Empty State -->
@@ -333,7 +334,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap mb-1">
                                 <p class="text-sm text-slate-800 font-medium">{{ m.category }}</p>
-                            </div>
+                    </div>
                             <p class="text-xs text-slate-500 line-clamp-2">{{ m.description }}</p>
 
                             <!-- Photo indicator -->

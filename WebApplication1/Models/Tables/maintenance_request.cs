@@ -13,7 +13,6 @@ namespace WebApplication1.Models.Tables
         public string category { get; set; }
         public string description { get; set; }
         public string status { get; set; }
-        public string priority { get; set; }
         public DateTime reportedDate { get; set; }
         public DateTime? resolvedDate { get; set; }
         public DateTime? scheduledDate { get; set; }
