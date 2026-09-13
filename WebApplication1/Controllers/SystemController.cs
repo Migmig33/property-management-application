@@ -1,4 +1,5 @@
-﻿using Microsoft.Ajax.Utilities;
+﻿using Hangfire.States;
+using Microsoft.Ajax.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -65,27 +66,27 @@ namespace WebApplication1.Controllers
             return View("Renters/UnitDetails");
 
         }
-        [CheckSession(AllowedRoles = new[] { 2 })]
+        //[CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Dashboard()
         {
             return View("Admin/Dashboard");
         }
-        [CheckSession(AllowedRoles = new[] { 2 })]
+        //[CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Units()
         {
             return View("Admin/Units");
         }
-        [CheckSession(AllowedRoles = new[] { 2 })]
+        //[CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Tenants()
         {
             return View("Admin/Tenants");
         }
-        [CheckSession(AllowedRoles = new[] { 2 })]
+        //[CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Bookings()
         {
             return View("Admin/Bookings");
         }
-        [CheckSession(AllowedRoles = new[] { 2 })]
+        //[CheckSession(AllowedRoles = new[] { 2 })]
 
         public ActionResult Maintenance()
         {
@@ -101,7 +102,7 @@ namespace WebApplication1.Controllers
         {
             return View();
         }
-        [CheckSession(AllowedRoles = new[] { 3 })]
+        //[CheckSession(AllowedRoles = new[] { 3 })]
 
         public ActionResult TenantPortal()
         {
@@ -871,7 +872,7 @@ namespace WebApplication1.Controllers
                         {
 
                             existingRequest.status = requestData.status;
-
+                            existingRequest.scheduledDate = requestData.scheduledDate;
 
                             connect.SaveChanges();
 
@@ -1658,13 +1659,12 @@ namespace WebApplication1.Controllers
                             resolvedDate = m.resolvedDate.HasValue ? m.resolvedDate.Value.ToString("MMM dd, yyyy hh:mm tt") : null,
                             // UI placeholders for fields that aren't in your DB model yet
 
-                            scheduledDate = (string)null,
-                            scheduledTime = (string)null
+                            scheduledDate = m.scheduledDate.HasValue ? m.scheduledDate.Value.ToString("MMM dd, yyyy hh:mm tt") : null
                         };
                     }).ToList();
 
                     // 3. Map the units for the "Add Request" dropdown
-                    var unitsResult = units.Select(u => new
+                    var allUnit = units.Select(u => new
                     {
                         u.Uid,
                         u.unitName
@@ -1673,8 +1673,20 @@ namespace WebApplication1.Controllers
                     var tenantsResult = tenants.Select(t => new
                     {
                         Tid = t.Tid,
+                        Uid = t.unitId,
                         name = t.name
                     }).ToList();
+
+                    var unitsResult = (
+                        from u in allUnit
+                        join t in tenantsResult
+                            on u.Uid equals t.Uid
+                        select new
+                        {
+                            u.Uid,
+                            u.unitName
+                        }
+                        );
 
                     return Json(new
                     {

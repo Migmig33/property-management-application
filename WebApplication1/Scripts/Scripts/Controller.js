@@ -1,10 +1,10 @@
 ﻿app.controller('controller', function (service, $scope, $timeout, $interval, $http, $sce, $window) {
 
-    var systemRefreshTimer = setInterval(function () {
-        $scope.$applyAsync(function () {
-            $scope.getAllBrowseUnits();
-        });
-    }, 10000);
+    //var systemRefreshTimer = setInterval(function () {
+    //    $scope.$applyAsync(function () {
+    //        $scope.getAllBrowseUnits();
+    //    });
+    //}, 10000);
 
     // ==========================================
     // 0. OCCUPANCY TYPE CONSTANTS
@@ -1477,7 +1477,7 @@
             category: $scope.schedulingReq.category,
             priority: $scope.schedulingReq.priority,
             description: $scope.schedulingReq.description,
-            resolvedDate: combinedDateTimeStr,
+            scheduledDate: combinedDateTimeStr,
             status: "In Progress"
         };
 

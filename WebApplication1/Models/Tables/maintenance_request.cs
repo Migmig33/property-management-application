@@ -16,5 +16,6 @@ namespace WebApplication1.Models.Tables
         public string priority { get; set; }
         public DateTime reportedDate { get; set; }
         public DateTime? resolvedDate { get; set; }
+        public DateTime? scheduledDate { get; set; }
     }
 }
