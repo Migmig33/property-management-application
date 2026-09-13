@@ -156,7 +156,7 @@ namespace WebApplication1.Controllers
                 return Json(new
                 {
                     success = true,
-                    videoUrl = videoUrl
+                    url = videoUrl
                 });
 
             }catch(Exception ex)

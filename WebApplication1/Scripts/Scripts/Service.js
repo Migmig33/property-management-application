@@ -75,13 +75,13 @@
     };
     this.UploadUnitVideoService = function (file) {
         var fd = new FormData();
-        fd.append('file', file);
+        fd.append('video', file);
 
         return $http({
             url: '/System/UploadUnitVideo',
             method: 'POST',
             data: fd,
-            headers: { 'Content-Type': undefined },   // let the browser set the boundary
+            headers: { 'Content-Type': undefined },   
             transformRequest: angular.identity
         });
     };
