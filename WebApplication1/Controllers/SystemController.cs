@@ -66,33 +66,33 @@ namespace WebApplication1.Controllers
             return View("Renters/UnitDetails");
 
         }
-        //[CheckSession(AllowedRoles = new[] { 2 })]
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Dashboard()
         {
             return View("Admin/Dashboard");
         }
-        //[CheckSession(AllowedRoles = new[] { 2 })]
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Units()
         {
             return View("Admin/Units");
         }
-        //[CheckSession(AllowedRoles = new[] { 2 })]
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Tenants()
         {
             return View("Admin/Tenants");
         }
-        //[CheckSession(AllowedRoles = new[] { 2 })]
+        [CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Bookings()
         {
             return View("Admin/Bookings");
         }
-        //[CheckSession(AllowedRoles = new[] { 2 })]
+        [CheckSession(AllowedRoles = new[] { 2 })]
 
         public ActionResult Maintenance()
         {
             return View("Admin/Maintenance");
         }
-        //[CheckSession(AllowedRoles = new[] { 2 })]
+        [CheckSession(AllowedRoles = new[] { 2 })]
 
         public ActionResult Payments()
         {
@@ -102,7 +102,7 @@ namespace WebApplication1.Controllers
         {
             return View();
         }
-        //[CheckSession(AllowedRoles = new[] { 3 })]
+        [CheckSession(AllowedRoles = new[] { 3 })]
 
         public ActionResult TenantPortal()
         {
