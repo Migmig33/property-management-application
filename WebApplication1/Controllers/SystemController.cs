@@ -115,30 +115,54 @@ namespace WebApplication1.Controllers
             try
             {
                 if (video == null || video.ContentLength == 0)
-                    return Json(new { success = false, message = "No video file received" }, JsonRequestBehavior.AllowGet);
-
-                // Validate file type
-                var allowedTypes = new[] { "video/mp4", "video/webm", "video/ogg" };
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "No video file recieved"
+                    });
+                }
+                var allowedTypes = new[]
+                {
+                    "video/mp4",
+                    "video/webm",
+                    "video/ogg"
+                };
                 if (!allowedTypes.Contains(video.ContentType))
-                    return Json(new { success = false, message = "Invalid video file type" }, JsonRequestBehavior.AllowGet);
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Invalid Video Type"
+                    });
+                }
+                var extension = Path.GetExtension(video.FileName);
 
-                // Save to /Uploads/Videos/
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(video.FileName);
-                var folderPath = Server.MapPath("~/Uploads/Videos/");
+                var fileName =
+                    Guid.NewGuid().ToString() + extension;
 
-                if (!Directory.Exists(folderPath))
+                var folderPath =
+                    Server.MapPath("~/Uploads/Videos");
+
+                if(!Directory.Exists(folderPath))
+                {
                     Directory.CreateDirectory(folderPath);
-
+                }
                 var filePath = Path.Combine(folderPath, fileName);
                 video.SaveAs(filePath);
 
-                // ✅ Return the accessible URL
-                var videoUrl = "/Uploads/Videos/" + fileName;
-                return Json(new { success = true, videoUrl = videoUrl }, JsonRequestBehavior.AllowGet);
-            }
-            catch (Exception ex)
+                var videoUrl =
+                    Url.Content("~/Uploads/Videos/" + fileName);
+                return Json(new
+                {
+                    success = true,
+                    videoUrl = videoUrl
+                });
+
+            }catch(Exception ex)
             {
-                return Json(new { success = false, message = ErrorHandling(ex) }, JsonRequestBehavior.AllowGet);
+                return Json(new { success = false, message = ErrorHandling(ex) },
+                           JsonRequestBehavior.AllowGet);
             }
         }
 
