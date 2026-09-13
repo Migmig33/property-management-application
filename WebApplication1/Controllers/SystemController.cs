@@ -110,7 +110,7 @@ namespace WebApplication1.Controllers
         }
         // POST API
         [HttpPost]
-        public JsonResult UploadVideo(HttpPostedFileBase video)
+        public JsonResult UploadUnitVideo(HttpPostedFileBase video)
         {
             try
             {
@@ -661,51 +661,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        // ============================================================
-        // VIDEO UPLOAD  —  new action
-        // ============================================================
-        // Videos go to disk, not the database. A 20MB clip becomes ~27MB of
-        // base64 and would be dragged out of MySQL on every page load.
-        // Returns the path, which the frontend puts into videoUrl.
-
-        [HttpPost]
-        public JsonResult UploadUnitVideo()
-        {
-            try
-            {
-                if (Request.Files.Count == 0 || Request.Files[0] == null || Request.Files[0].ContentLength == 0)
-                    return Json(new { success = false, message = "No video file received." });
-
-                var file = Request.Files[0];
-
-                var allowed = new[] { ".mp4", ".webm", ".mov", ".m4v" };
-                string ext = System.IO.Path.GetExtension(file.FileName).ToLower();
-
-                if (!allowed.Contains(ext))
-                    return Json(new { success = false, message = "Only MP4, WEBM, MOV or M4V files are allowed." });
-
-                if (file.ContentLength > 50 * 1024 * 1024)
-                    return Json(new { success = false, message = "Video must be under 50MB." });
-
-                string folder = Server.MapPath("~/uploads/videos");
-                if (!System.IO.Directory.Exists(folder))
-                    System.IO.Directory.CreateDirectory(folder);
-
-                string fileName = Guid.NewGuid().ToString() + ext;
-                file.SaveAs(System.IO.Path.Combine(folder, fileName));
-
-                return Json(new
-                {
-                    success = true,
-                    url = "/uploads/videos/" + fileName,
-                    name = file.FileName
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
+      
         [HttpPost]
         public JsonResult ConfirmBooking(int id)
         {
