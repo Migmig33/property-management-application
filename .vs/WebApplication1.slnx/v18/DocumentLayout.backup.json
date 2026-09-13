@@ -7,12 +7,12 @@
       "RelativeMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|solutionrelative:webapplication1\\controllers\\systemcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\webapplication1\\scripts\\scripts\\service.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
-      "RelativeMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|solutionrelative:webapplication1\\scripts\\scripts\\service.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+      "AbsoluteMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|c:\\users\\aldwin florante\\desktop\\folder3\\bigtime-main - copy\\webapplication1\\web.config||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|solutionrelative:webapplication1\\web.config||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|c:\\users\\aldwin florante\\desktop\\folder3\\bigtime-main - copy\\webapplication1\\views\\system\\admin\\units.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|solutionrelative:webapplication1\\views\\system\\admin\\units.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+      "AbsoluteMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\webapplication1\\scripts\\scripts\\service.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|solutionrelative:webapplication1\\scripts\\scripts\\service.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\webapplication1\\views\\system\\admin\\maintenance.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -21,6 +21,10 @@
     {
       "AbsoluteMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\webapplication1\\scripts\\scripts\\controller.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
       "RelativeMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|solutionrelative:webapplication1\\scripts\\scripts\\controller.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\webapplication1\\views\\system\\admin\\units.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|solutionrelative:webapplication1\\views\\system\\admin\\units.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7AEB283F-A353-4B7D-A7FD-E88061351A80}|WebApplication1\\WebApplication1.csproj|C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\webapplication1\\models\\tables\\maintenance_request.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -34,11 +38,24 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
+              "Title": "Web.config",
+              "DocumentMoniker": "C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\WebApplication1\\Web.config",
+              "RelativeDocumentMoniker": "WebApplication1\\Web.config",
+              "ToolTip": "C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\WebApplication1\\Web.config*",
+              "RelativeToolTip": "WebApplication1\\Web.config*",
+              "ViewState": "AgIAAJcAAAAAAAAAAAAAAMMAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000601|",
+              "WhenOpened": "2026-09-13T15:07:49.493Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
               "Title": "Units.cshtml",
               "DocumentMoniker": "C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\WebApplication1\\Views\\System\\Admin\\Units.cshtml",
               "RelativeDocumentMoniker": "WebApplication1\\Views\\System\\Admin\\Units.cshtml",
@@ -51,28 +68,29 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "Service.js",
               "DocumentMoniker": "C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\WebApplication1\\Scripts\\Scripts\\Service.js",
               "RelativeDocumentMoniker": "WebApplication1\\Scripts\\Scripts\\Service.js",
               "ToolTip": "C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\WebApplication1\\Scripts\\Scripts\\Service.js",
               "RelativeToolTip": "WebApplication1\\Scripts\\Scripts\\Service.js",
-              "ViewState": "AgIAADgAAAAAAAAAAAAAwFIAAAAVAAAAAAAAAA==",
+              "ViewState": "AgIAAD4AAAAAAAAAAAAAwEUAAAAsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
               "WhenOpened": "2026-09-13T13:47:58.845Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "maintenance_request.cs",
               "DocumentMoniker": "C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\WebApplication1\\Models\\Tables\\maintenance_request.cs",
               "RelativeDocumentMoniker": "WebApplication1\\Models\\Tables\\maintenance_request.cs",
               "ToolTip": "C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\WebApplication1\\Models\\Tables\\maintenance_request.cs",
               "RelativeToolTip": "WebApplication1\\Models\\Tables\\maintenance_request.cs",
-              "ViewState": "AgIAAAoAAAAAAAAAAAAQwBIAAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAAAoAAAAAAAAAAAAzwBIAAAAmAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-13T12:22:46.761Z"
+              "WhenOpened": "2026-09-13T12:22:46.761Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -82,7 +100,7 @@
               "RelativeDocumentMoniker": "WebApplication1\\Controllers\\SystemController.cs",
               "ToolTip": "C:\\Users\\Aldwin Florante\\Desktop\\folder3\\Bigtime-main - Copy\\WebApplication1\\Controllers\\SystemController.cs",
               "RelativeToolTip": "WebApplication1\\Controllers\\SystemController.cs",
-              "ViewState": "AgIAACkAAAAAAAAAAAAqwDkAAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAAGYAAAAAAAAAAAAuwGwAAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-09-13T12:16:13.742Z",
               "EditorCaption": ""

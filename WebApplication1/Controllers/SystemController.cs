@@ -71,7 +71,7 @@ namespace WebApplication1.Controllers
         {
             return View("Admin/Dashboard");
         }
-        [CheckSession(AllowedRoles = new[] { 2 })]
+        //[CheckSession(AllowedRoles = new[] { 2 })]
         public ActionResult Units()
         {
             return View("Admin/Units");
@@ -156,7 +156,9 @@ namespace WebApplication1.Controllers
                 return Json(new
                 {
                     success = true,
-                    url = videoUrl
+                    url = videoUrl,
+                    physicalPath = filePath,
+                    fileExists = System.IO.File.Exists(filePath)
                 });
 
             }catch(Exception ex)
